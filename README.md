@@ -1,153 +1,179 @@
 # Weep
 
-AI-Native Micro-Tipping & Autonomous Payment Layer on Solana + x402-style Rails
-Weep enables one-tap tipping, automated AI tipping, transparent distribution, and on-chain audit proofs for the global creator, hospitality, and service economy — built for both humans and AI agents.
+**AI-native, x402-powered tipping infrastructure for global service businesses**
 
-## Background & Why Weep
+Weep is not a payment app or a wallet.
+It is a programmable tipping infrastructure that enables transparent, automated, and trust-enforced tipping workflows for restaurants, hotels, mobility platforms, and other service businesses.
 
-Tipping is moving into a digital-first global economy. From restaurants and delivery drivers to streamers and digital workers, tipping is now a major part of income across industries.
-Yet digital tipping is still fragmented, expensive, and opaque.
-Legacy payment rails were not designed for micro-transactions or global service economies. Users do not trust that tips reach workers.
-Workers lack visibility and transparency. Cross-border tipping remains difficult. Wallet UX across platforms is inconsistent.
-And as AI agents emerge as economic participants, today’s systems cannot support autonomous tipping or programmable appreciation.
-Tink exists to solve these gaps and create an internet-native tipping protocol.
+Built on **Cronos EVM**, Weep combines **consumer-facing x402 flows**, **AI-driven decision logic**, and **on-chain programmatic settlement** to turn tipping into an executable, scalable on-chain action.
 
-## Overview
+## Why Weep
 
-Weep is a protocol for frictionless, transparent, programmable tipping built on Solana and x402-style payment flows.
-It enables users and AI agents to send appreciation in the form of fast, low-fee micro-payments triggered via QR codes, shareable links, or server-initiated pay-to-unlock flows.
-Weep handles payment initiation, automatic suggested tips, transaction verification, transparent split logic, and audit-proof record anchoring.
-Workers and creators can view tips instantly through a dashboard, while merchants gain access to transparent payout and export tools.
-The protocol is designed to operate seamlessly across real-world venues and digital platforms and can be extended to autonomous agent environments, allowing AI systems to reward service and digital labor without human intervention.
-Tink’s mission is to become the native tipping rail of the internet — where humans and intelligent agents can express appreciation instantly and verifiably.
+Tipping has become a core compensation and experience layer in the global service economy.
+However, existing systems treat tipping as a UI feature rather than infrastructure.
 
-## Key Features
+This leads to:
 
-| Feature                            | Description                                  |
-| ---------------------------------- | -------------------------------------------- |
-| One-click Tip Links & QR           | Scan or tap to tip instantly without login   |
-| x402-style “Payment Required” flow | Web-native pay-to-unlock mechanism           |
-| AI Tip Suggestions                 | Rule-based first, ML expansion later         |
-| On-chain Audit Proofs              | Anchor digest on Solana for verifiable trail |
-| Transparent Split Rules            | FOH/BOH or creator-team split; CSV export    |
-| Merchant Dashboard                 | Real-time view, export, dispute log          |
-| Wallet Support                     | Phantom, Phantom CASH, CDP Embedded Wallets  |
-| Agent-Compatible                   | AI agent automatic tipping logic             |
+* Opaque tip distribution and employee distrust
+* Manual policies and frequent internal disputes
+* No standardization across regions and cultures
+* Tip data being unused for operations or retention
+* No support for AI-initiated or automated tipping flows
 
-## Protocol Flow
+**Weep addresses this by redefining tipping as infrastructure, not a button.**
 
-``` mermaid
+## What Weep Does
+
+Weep manages the full lifecycle of tipping:
+
+* How tips are initiated
+* How they are distributed
+* How trust is enforced
+* How intelligence is applied
+* How data is used operationally
+
+It enables both **humans and AI agents** to interact with tipping in a programmable, verifiable way.
+
+## Core Features
+
+### 1. Embeddable Tipping Widget (x402)
+
+* QR codes, tip links, and web widgets
+* x402 `Payment Required` responses
+* Wallet used only for authentication and settlement
+* No sign-ups or app installs required
+
+### 2. Distribution & Trust Layer
+
+* POS-style distribution dashboard
+* Configurable policies (FOH / BOH / Bar)
+* Direct payouts to individual employee wallets
+* Verifiable, tamper-resistant records
+
+### 3. AI-Powered Tipping Intelligence
+
+* Country-specific tipping culture analysis
+* Context-aware tip recommendations
+* Reduced decision fatigue for users
+* AI agents can initiate and manage tipping flows
+
+## Layered Architecture
+
+Weep is designed as a layered infrastructure:
+
+```
+Layer 4. Insight & Compliance
+- Analytics, reporting, compliance-ready data
+
+Layer 3. Intelligence & Recommendation
+- AI-driven tip suggestions and context analysis
+
+Layer 2. Distribution & Trust
+- Policy-based distribution, employee wallets, verifiable records
+
+Layer 1. Tip Initiation
+- Widgets, QR, x402 flows, wallet-based settlement
+```
+
+Each layer solves a distinct problem, and together they form a complete tipping infrastructure.
+
+## User Flow (End User Perspective)
+
+```mermaid
 sequenceDiagram
     autonumber
+    participant User
+    participant Widget as Weep Widget
+    participant Wallet
+    participant Chain as Cronos EVM
 
-    participant User as User
-    participant FE as Tink Frontend
-    participant BE as Backend API
-    participant Wallet as Wallet (Phantom/CDP)
-    participant Chain as Solana Network
-    participant DB as Database
-    participant Worker as Worker Portal
-
-    User ->> FE: Scan QR / Open Tip Link
-    FE ->> BE: GET /api/resource (session)
-    BE -->> FE: 402 Payment Required JSON<br/>amount, pay_to, memo, session
-
-    User ->> FE: Select tip amount (AI suggestion or manual)
-    User ->> Wallet: Approve and sign transaction
-    Wallet ->> Chain: Broadcast transaction
-    Chain -->> Wallet: Confirm transaction hash
-    Wallet -->> FE: Return tx_hash
-
-    FE ->> BE: POST /api/verify { session, tx_hash }
-    BE ->> Chain: Verify tx details<br/>amount, receiver, confirmations
-    Chain -->> BE: Validated transaction
-    BE ->> DB: Store tip record (amount, tx_hash, merchant, user)
-    BE ->> DB: Create distribution simulation record
-
-    BE ->> Chain: Anchor digest (optional memo tx)
-    Chain -->> BE: Anchor tx_hash
-
-    BE -->> FE: Receipt info + proof links
-    FE -->> User: Show receipt with tx hash + audit link
-
-    DB -->> Worker: Tip appears in real-time dashboard
+    User ->> Widget: Scan QR / Open Tip Link
+    Widget -->> User: Show tip options + AI suggestion
+    User ->> Wallet: Approve payment
+    Wallet ->> Chain: Execute x402 payment
+    Chain -->> Wallet: Transaction confirmed
+    Wallet -->> Widget: Tx hash
+    Widget -->> User: Receipt + confirmation
 ```
 
-# User Flow
+**Goal:**
+Enable frictionless tipping in 2–3 steps without sign-ups or app installs.
 
-``` mermaid
+## Admin & Employee Unified Flow (Distribution & Trust)
+
+```mermaid
 sequenceDiagram
     autonumber
+    participant Admin as Admin (Operator)
+    participant Dashboard as Weep Dashboard
+    participant Backend as Weep Backend
+    participant Chain as Cronos EVM
+    participant Employee as Employee Wallet
 
-    participant User
-    participant FE as Tink UI
-    participant Wallet as Wallet App
+    %% Admin defines policy
+    Admin ->> Dashboard: Access distribution dashboard
+    Dashboard ->> Backend: Load current distribution policy
+    Backend -->> Dashboard: Policy data (FOH / BOH / Bar)
 
-    User ->> FE: Scan QR or open tip link
-    FE -->> User: Load tip screen
+    Admin ->> Dashboard: Set or update distribution rules
+    Dashboard ->> Backend: Save policy configuration
+    Backend ->> Chain: Anchor policy reference
+    Chain -->> Backend: Policy confirmed
 
-    User ->> FE: View AI suggestion or manual input option
-    FE ->> User: Show suggested and manual amounts
+    %% Tip distribution happens (system-triggered)
+    Backend ->> Chain: Apply distribution policy
+    Chain ->> Employee: Distribute tips to employee wallets
 
-    alt Accept AI suggestion
-        User ->> FE: Select suggested tip amount
-    else Choose manually
-        User ->> FE: Enter custom tip amount
-    end
+    %% Employee verifies outcome
+    Employee ->> Dashboard: Open employee view
+    Dashboard ->> Chain: Fetch allocation records
+    Chain -->> Dashboard: Tip allocations + tx hashes
 
-    User ->> Wallet: Connect wallet & approve payment
-    Wallet ->> Wallet: Broadcast transaction
-
-    alt Payment success
-        Wallet -->> FE: Return tx success
-        FE -->> User: Show receipt and proof info
-        User ->> User: Done
-    else Payment fails
-        Wallet -->> FE: Return failure
-        FE -->> User: Show retry or cancel
-    end
+    Dashboard -->> Employee: Show received tips + proof
 ```
 
-# Weep Flow
+**Weep separates responsibilities by design:**
+- Admins define distribution policies without touching funds
+- Employees receive and verify tips directly in their own wallets
+- The protocol enforces trust through on-chain settlement
 
-``` mermaid
+## Weep Flow (Infrastructure & Trust Perspective)
+
+```mermaid
 sequenceDiagram
+    autonumber
     participant User
-    participant TinkServer
-    participant Blockchain
+    participant Widget as Weep Widget
+    participant Backend as Weep Backend
+    participant Agent as AI Agent
+    participant Chain as Cronos EVM
+    participant Employee as Employee Wallet
 
-    User->>ServWeeper: 1. Scan QR / Request Tip Resource
-    WeepServer-->>User: 2. HTTP 402 Payment Required (AI suggested tip)
-    User->>Blockchain: 3. Send Payment via Wallet
-    Blockchain-->>WeepServer: 4. Confirm Transaction
-    WeepServer-->>User: 5. Verify + Return Receipt (on-chain proof, split info)
+    User ->> Widget: Initiate tip
+    Widget ->> Backend: Request payment session
+    Backend -->> Widget: x402 Payment Required + context
+
+    Backend ->> Agent: Request tip recommendation
+    Agent -->> Backend: Context-aware tip amount
+
+    User ->> Widget: Confirm payment
+    Widget ->> Chain: Submit transaction
+    Chain -->> Backend: Confirm settlement
+
+    Backend ->> Chain: Apply distribution policy
+    Chain ->> Employee: Distribute tips to wallets
+
+    Backend -->> Widget: Proof + distribution summary
 ```
 
+**Goal:**
+Enforce trust, ownership, and transparency through programmatic settlement.
 
-## Tech Stack
+## Vision
 
-## MVP Scope
+**To become the invisible, programmable tipping infrastructure that lets value flow transparently and globally between people and AI.**
 
-* One-click Tip Link / QR flow
-* x402-style “Payment Required” request + verify
-* On-chain memo digest anchoring
-* Merchant dashboard with split rules and CSV export
-* Demo: QR scan → wallet pay → dashboard shows verified tip
-
-Stretch: AI suggestion engine and hybrid on/off-chain split automation.
-
-## Roadmap
-
-| Phase   | Features                            |
-| ------- | ----------------------------------- |
-| MVP     | Link/QR flow, dashboard, audit hash |
-| Phase 2 | AI scoring, worker view, POS SDK    |
-| Phase 3 | Auto split payouts, multi-token     |
-| Phase 4 | Base + Coinbase wallet integration  |
-| Phase 5 | Autonomous AI-to-AI tipping         |
-
-## Conclusion
-Weep is building an internet-native tipping layer powered by real-time micro-payments, transparent reward distribution, and autonomous agent support.
-It transforms tipping into a programmable primitive — allowing both humans and AI agents to express appreciation instantly, fairly, and verifiably.
-
-
+### Notes
+* Wallets are used strictly for authentication and settlement, not as UX
+* Trust is enforced by structure, not promises
+* Weep is designed as infrastructure-first, UI-second
