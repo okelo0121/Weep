@@ -28,7 +28,7 @@ const Navbar = () => {
                             className="object-contain"
                         />
                     </div>
-                    <span className="text-xl font-bold text-white">Weep</span>
+                    <span className="text-xl font-bold text-white"></span>
                 </Link>
 
                 {/* Navigation Links */}
@@ -54,7 +54,7 @@ const Navbar = () => {
                         theme="dark"
                         connectButton={{
                             label: "Connect Wallet",
-                            className: "!bg-primary !text-white !font-medium !rounded-md !h-9 !px-4 !text-sm hover:!bg-blue-600 transition-colors"
+                            className: "!bg-primary !text-blue !font-medium !rounded-md !h-9 !px-4 !text-sm"
                         }}
                     />
                 </div>
