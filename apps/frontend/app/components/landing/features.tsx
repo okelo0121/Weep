@@ -2,6 +2,7 @@
 
 import { Wallet, PieChart, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import Link from 'next/link';
 
 const Steps = [
     {
