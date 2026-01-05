@@ -20,7 +20,7 @@ const Navbar = () => {
             <div className="container mx-auto flex h-16 items-center justify-between px-4">
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2">
-                    <div className="relative h-8 w-8">
+                    <div className="relative h-12 w-12">
                         <Image
                             src="/logo.png"
                             alt="Weep Logo"
