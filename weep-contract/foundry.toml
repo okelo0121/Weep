@@ -2,5 +2,10 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+solc = "0.8.20"
+
+[rpc_endpoints]
+cronos_testnet = "https://evm-t3.cronos.org"
+cronos_mainnet = "https://evm.cronos.org"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
