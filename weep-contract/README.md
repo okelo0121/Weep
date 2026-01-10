@@ -20,8 +20,9 @@
 * Tax enforcement
 * Upgrade complexity
 
-## FRONTEND NOTES (FOUNDRY)
-**TipDistributor Deployed to 0xA9Eaf8E76966b60e9aB63C74a42605E84adF9EcE** (MAIN)
+## FRONTEND NOTES
+**TipDistributor Deployed to 0xA9Eaf8E76966b60e9aB63C74a42605E84adF9EcE**
+
 **DistributionPolicyRegistry Deployed to 0x81AeC0B87CAa631365B0AC0B628A84afdf6f1Fe9**
 
 **Frontend writes to: TipDistributor**
