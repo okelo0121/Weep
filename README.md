@@ -169,6 +169,41 @@ sequenceDiagram
 **Goal:**
 Enforce trust, ownership, and transparency through programmatic settlement.
 
+## Developer Setup
+
+This project is a monorepo containing both the backend and frontend.
+
+### Backend Setup
+
+The backend is an Express server located in `apps/backend`. It handles merchant management, session creation, and payment facilitation on Cronos.
+
+For detailed backend setup, environment variables, and API documentation, see:
+**[Backend Documentation](apps/backend/README.md)**
+
+#### Quick Start:
+1. `cd apps/backend`
+2. `cp .env.example .env` (and fill in your keys)
+3. `npm install`
+4. `npm run dev`
+
+### Frontend Setup
+
+The frontend is located in `apps/frontend`.
+
+1. `cd apps/frontend`
+2. `npm install`
+3. `npm run dev`
+
+### Cronos Network Details
+
+Weep operates on the Cronos blockchain.
+
+- **Testnet (Recommended for Dev)**: Chain ID 338
+- **Mainnet**: Chain ID 25
+- **Currency**: USDC (6 decimals)
+
+---
+
 ## Vision
 
 **To become the invisible, programmable tipping infrastructure that lets value flow transparently and globally between people and AI.**
