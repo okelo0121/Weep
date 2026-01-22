@@ -10,7 +10,7 @@ interface FacilitatorConfig {
 
 export class ThirdWebFacilitator {
     private config: FacilitatorConfig;
-    private chainConfig: ChainConfig;
+    private readonly chainConfig: ChainConfig;
 
     constructor(config: FacilitatorConfig) {
         this.config = config;
