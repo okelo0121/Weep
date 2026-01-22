@@ -17,6 +17,24 @@ export interface MerchantStats {
     tipCountTotal: number;
     percentChangeToday: number;
     percentChangeWeek: number;
+    activeEmployees: number;
+    pendingPayouts: number;
+    pendingPayoutsCount: number;
+    paidPayouts: number;
+    paidPayoutsCount: number;
+}
+
+export interface EmployeeWithStats extends Employee {
+    pendingAmount: number;
+    totalEarned: number;
+    lastTxHash?: string;
+    lastTxStatus?: string;
+}
+
+export interface PayoutRequest {
+    merchantId: string;
+    employeeId: string;
+    amount: number;
 }
 
 export interface TipSplitConfig {

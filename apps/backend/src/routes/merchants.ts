@@ -14,8 +14,8 @@ import {
     TipSplitRepository,
     TransactionRepository
 } from "../db/models";
-import {Router} from "express";
-import {ContractService} from "../services";
+import { Router } from "express";
+import { ContractService } from "../services";
 
 const router = Router();
 
@@ -60,7 +60,7 @@ const router = Router();
  */
 router.get("/:id", (request, response) => {
     try {
-        const {id} = request.params;
+        const { id } = request.params;
 
         // Try finding by ID first, then by slug
         let merchant = MerchantRepository.findById(id);
@@ -130,7 +130,7 @@ router.get("/:id", (request, response) => {
  */
 router.get("/:id/stats", (request, response) => {
     try {
-        const {id} = request.params;
+        const { id } = request.params;
 
         let merchant = MerchantRepository.findById(id);
         if (!merchant) {
@@ -209,7 +209,7 @@ router.get("/:id/stats", (request, response) => {
  */
 router.get("/:id/tips", (request, response) => {
     try {
-        const {id} = request.params;
+        const { id } = request.params;
         const limit = parseInt(request.query.limit as string) || 10;
 
         let merchant = MerchantRepository.findById(id);
@@ -289,8 +289,8 @@ router.get("/:id/tips", (request, response) => {
  */
 router.get("/:id/tips/export", (request, response) => {
     try {
-        const {id} = request.params;
-        const {startDate, endDate} = request.query;
+        const { id } = request.params;
+        const { startDate, endDate } = request.query;
 
         let merchant = MerchantRepository.findById(id);
         if (!merchant) {
@@ -335,8 +335,7 @@ router.get("/:id/tips/export", (request, response) => {
         response.setHeader("Content-Type", "text/csv");
         response.setHeader(
             "Content-Disposition",
-            `attachment; filename="tips-${merchant.slug}-${
-                new Date().toISOString().split("T")[0]
+            `attachment; filename="tips-${merchant.slug}-${new Date().toISOString().split("T")[0]
             }.csv"`
         );
 
@@ -391,7 +390,7 @@ router.get("/:id/tips/export", (request, response) => {
  */
 router.get("/:id/split-config", (request, response) => {
     try {
-        const {id} = request.params;
+        const { id } = request.params;
 
         let merchant = MerchantRepository.findById(id);
         if (!merchant) {
@@ -491,8 +490,8 @@ router.get("/:id/split-config", (request, response) => {
  */
 router.put("/:id/split-config", async (request, response) => {
     try {
-        const {id} = request.params;
-        const {splits} = request.body;
+        const { id } = request.params;
+        const { splits } = request.body;
 
         let merchant = MerchantRepository.findById(id);
         if (!merchant) {
@@ -523,17 +522,17 @@ router.put("/:id/split-config", async (request, response) => {
 
         // Sync with Web3 if possible
         try {
-            const {recipients, percentages} = ContractService.preparePolicyData(
+            const { recipients, percentages } = ContractService.preparePolicyData(
                 updatedConfig.splits,
                 merchant.walletAddress
             );
 
             // This invokes the Web3 contract to create/update the distribution policy
             const onChainPolicyId = await ContractService.syncPolicyOnChain(recipients, percentages);
-            
+
             // Store the on-chain reference
             MerchantRepository.updateOnChainPolicyId(merchant.id, onChainPolicyId);
-            
+
             return response.json({
                 success: true,
                 data: {
@@ -544,7 +543,7 @@ router.put("/:id/split-config", async (request, response) => {
             } as ApiResponse<TipSplitConfig & { onChainPolicyId: number }>);
         } catch (web3Error) {
             console.warn("Failed to sync policy on-chain, but off-chain update succeeded:", web3Error);
-            
+
             return response.json({
                 success: true,
                 data: updatedConfig,
@@ -625,7 +624,7 @@ router.put("/:id/split-config", async (request, response) => {
  */
 router.post("/", (request, response) => {
     try {
-        const {name, slug, walletAddress, avatar} = request.body;
+        const { name, slug, walletAddress, avatar } = request.body;
 
         if (!name || !slug || !walletAddress) {
             return response.status(400).json({
@@ -652,9 +651,9 @@ router.post("/", (request, response) => {
 
         // Create default tip splits
         TipSplitRepository.update(merchant.id, [
-            {name: "Front Of House", percentage: 60},
-            {name: "Back Of House", percentage: 30},
-            {name: "Bar", percentage: 10},
+            { name: "Front Of House", percentage: 60 },
+            { name: "Back Of House", percentage: 30 },
+            { name: "Bar", percentage: 10 },
         ]);
 
         return response.status(201).json({
@@ -704,8 +703,8 @@ router.post("/", (request, response) => {
  */
 router.get("/:id/employees", (request, response) => {
     try {
-        const {id} = request.params;
-        
+        const { id } = request.params;
+
         let merchant = MerchantRepository.findById(id);
         if (!merchant) {
             merchant = MerchantRepository.findBySlug(id);
@@ -719,7 +718,7 @@ router.get("/:id/employees", (request, response) => {
         }
 
         const employees = EmployeeRepository.getByMerchantId(merchant.id);
-        
+
         return response.json({
             success: true,
             data: employees,
@@ -729,6 +728,98 @@ router.get("/:id/employees", (request, response) => {
             success: false,
             error: "Failed to fetch employees",
         } as ApiResponse<null>);
+    }
+});
+
+/**
+ * @route GET /api/merchants/:id/staff-stats
+ * @desc Get employees with their earnings statistics
+ */
+router.get("/:id/staff-stats", (request, response) => {
+    try {
+        const { id } = request.params;
+        let merchant = MerchantRepository.findById(id);
+        if (!merchant) merchant = MerchantRepository.findBySlug(id);
+
+        if (!merchant) {
+            return response.status(404).json({ success: false, error: "Merchant not found" });
+        }
+
+        const staff = EmployeeRepository.getWithStats(merchant.id);
+        return response.json({ success: true, data: staff });
+    } catch (error) {
+        console.error("Error fetching staff stats:", error);
+        return response.status(500).json({ success: false, error: "Failed to fetch staff stats" });
+    }
+});
+
+/**
+ * @route POST /api/merchants/:id/payout
+ * @desc Trigger a payout for a specific employee
+ */
+import { payoutEmployee } from "../services/blockchain";
+
+router.post("/:id/payout", async (request, response) => {
+    try {
+        const { id } = request.params;
+        const { employeeId, amount } = request.body;
+
+        let merchant = MerchantRepository.findById(id);
+        if (!merchant) merchant = MerchantRepository.findBySlug(id);
+        if (!merchant) return response.status(404).json({ success: false, error: "Merchant not found" });
+
+        const employee = EmployeeRepository.findById(employeeId);
+        if (!employee) return response.status(404).json({ success: false, error: "Employee not found" });
+
+        // Trigger Blockchain Payout
+        const result = await payoutEmployee(employee.walletAddress, amount);
+
+        if (result.success) {
+            // Update DB Records
+            TipAllocationRepository.markDistributed(employee.id);
+
+            return response.json({
+                success: true,
+                data: {
+                    txHash: result.txHash,
+                    amount: result.amount,
+                    status: 'confirmed'
+                }
+            });
+        } else {
+            return response.status(500).json({ success: false, error: "Blockchain transaction failed" });
+        }
+
+    } catch (error) {
+        console.error("Payout error:", error);
+        return response.status(500).json({ success: false, error: "Payout failed" });
+    }
+});
+
+// ... (previous routes)
+
+/**
+ * @route GET /api/merchants/:id/employees/:employeeId/payouts
+ * @desc Get payout history for a specific employee
+ */
+router.get("/:id/employees/:employeeId/payouts", (request, response) => {
+    try {
+        const { id, employeeId } = request.params;
+        const limit = parseInt(request.query.limit as string) || 20;
+
+        let merchant = MerchantRepository.findById(id);
+        if (!merchant) merchant = MerchantRepository.findBySlug(id);
+        if (!merchant) return response.status(404).json({ success: false, error: "Merchant not found" });
+
+        const payouts = TipAllocationRepository.getByEmployeeId(employeeId, limit);
+
+        return response.json({
+            success: true,
+            data: payouts,
+        });
+    } catch (error) {
+        console.error("Error fetching employee payouts:", error);
+        return response.status(500).json({ success: false, error: "Failed to fetch payouts" });
     }
 });
 
@@ -780,8 +871,8 @@ router.get("/:id/employees", (request, response) => {
  */
 router.post("/:id/employees", (request, response) => {
     try {
-        const {id} = request.params;
-        const {name, walletAddress, role} = request.body;
+        const { id } = request.params;
+        const { name, walletAddress, role } = request.body;
 
         if (!name || !walletAddress || !role) {
             return response.status(400).json({
@@ -862,9 +953,9 @@ router.post("/:id/employees", (request, response) => {
  */
 router.get("/:id/allocations", (request, response) => {
     try {
-        const {id} = request.params;
+        const { id } = request.params;
         const limit = request.query.limit ? parseInt(request.query.limit as string) : 50;
-        
+
         let merchant = MerchantRepository.findById(id);
         if (!merchant) {
             merchant = MerchantRepository.findBySlug(id);
@@ -878,7 +969,7 @@ router.get("/:id/allocations", (request, response) => {
         }
 
         const allocations = TipAllocationRepository.getByMerchantId(merchant.id, limit);
-        
+
         return response.json({
             success: true,
             data: allocations,
@@ -930,11 +1021,11 @@ router.get("/:id/allocations", (request, response) => {
  */
 router.get("/employees/:id/allocations", (request, response) => {
     try {
-        const {id} = request.params;
+        const { id } = request.params;
         const limit = request.query.limit ? parseInt(request.query.limit as string) : 50;
-        
+
         const allocations = TipAllocationRepository.getByEmployeeId(id, limit);
-        
+
         return response.json({
             success: true,
             data: allocations,

@@ -5,11 +5,11 @@ import {
     TipSession,
     VerifyPaymentResponse
 } from "../types";
-import {MerchantRepository, SessionRepository, TransactionRepository} from "../db/models";
-import {getDatabase} from "../db";
-import {createPaymentRequirements, getFacilitator} from "../config/thirdweb";
-import {getChainConfig} from "../config/chains";
-import {recordTipAllocations} from "./tipSplitService";
+import { MerchantRepository, SessionRepository, TransactionRepository } from "../db/models";
+import { getDatabase } from "../db";
+import { createPaymentRequirements, getFacilitator } from "../config/thirdweb";
+import { getChainConfig } from "../config/chains";
+import { recordTipAllocations } from "./tipSplitService";
 
 /**
  * Prepares a payment by validating the session, merchant, and total amount,
@@ -81,21 +81,21 @@ export async function verifyPayment(
     const session = SessionRepository.findById(sessionId);
 
     if (!session) {
-        return {isValid: false, invalidReason: "Session not found"};
+        return { isValid: false, invalidReason: "Session not found" };
     }
 
     if (session.status === 'confirmed') {
-        return {isValid: false, invalidReason: "Payment already confirmed"};
+        return { isValid: false, invalidReason: "Payment already confirmed" };
     }
 
     if (session.status === 'expired') {
-        return {isValid: false, invalidReason: "Session has expired"};
+        return { isValid: false, invalidReason: "Session has expired" };
     }
 
     const merchant = MerchantRepository.findById(session.merchantId);
 
     if (!merchant) {
-        return {isValid: false, invalidReason: "Merchant not found"};
+        return { isValid: false, invalidReason: "Merchant not found" };
     }
 
     try {
@@ -136,17 +136,17 @@ export async function settlePayment(
     const session = SessionRepository.findById(sessionId);
 
     if (!session) {
-        return {success: false, error: "Session not found"};
+        return { success: false, error: "Session not found" };
     }
 
     if (session.status === "confirmed") {
-        return {success: false, error: "Payment already confirmed"};
+        return { success: false, error: "Payment already confirmed" };
     }
 
     const merchant = MerchantRepository.findById(session.merchantId);
 
     if (!merchant) {
-        return {success: false, error: "Merchant not found"};
+        return { success: false, error: "Merchant not found" };
     }
 
     try {
@@ -232,7 +232,7 @@ export function getPaymentStatus(sessionId: string): {
     const session = SessionRepository.findById(sessionId);
     const transaction = TransactionRepository.findBySessionId(sessionId);
 
-    return {session, transaction};
+    return { session, transaction };
 }
 
 /**
@@ -275,7 +275,80 @@ export function generatePaymentUrl(sessionId: string, baseUrl: string): string {
  * @param {string} txHash - The transaction hash used to locate the transaction in the explorer.
  * @return {string} The full URL to the transaction details page on the blockchain explorer.
  */
+
+
+/**
+ * Simulates a payment settlement for demo purposes.
+ * 
+ * @param {string} sessionId 
+ * @param {string} payerAddress 
+ */
+export async function simulatePayment(
+    sessionId: string,
+    payerAddress: string = "0x000000000000000000000000000000000000dEaD"
+): Promise<SettlePaymentResponse> {
+    const session = SessionRepository.findById(sessionId);
+
+    if (!session) {
+        return { success: false, error: "Session not found" };
+    }
+
+    if (session.status === "confirmed") {
+        return { success: true, txHash: "0xsimulated" }; // Idempotent
+    }
+
+    const merchant = MerchantRepository.findById(session.merchantId);
+    if (!merchant) {
+        return { success: false, error: "Merchant not found" };
+    }
+
+    // Simulate Tx Hash
+    const txHash = `0xsimulated${Date.now()}`;
+    const networkId = getChainConfig().networkString;
+
+    getDatabase().transaction(() => {
+        // create the transaction record
+        const transaction = TransactionRepository.create({
+            sessionId,
+            merchantId: session.merchantId,
+            payerAddress,
+            recipientAddress: merchant.walletAddress,
+            billAmount: session.billAmount,
+            tipAmount: session.tipAmount ?? 0,
+            totalAmount: session.totalAmount ?? session.billAmount,
+            currency: session.currency,
+            txHash,
+            networkId,
+            onChainPolicyId: merchant.onChainPolicyId,
+        });
+
+        // confirm the transaction
+        TransactionRepository.confirm(transaction.id);
+
+        // record the tip allocations for verifiable records
+        if (transaction.tipAmount > 0) {
+            recordTipAllocations(transaction.id, transaction.merchantId, transaction.tipAmount);
+        }
+
+        // update the session status
+        SessionRepository.updateStatus(sessionId, 'confirmed');
+    })();
+
+    return {
+        success: true,
+        txHash,
+        networkId
+    };
+}
+
+/**
+ * Constructs a URL for viewing transaction details on the blockchain explorer.
+ *
+ * @param {string} txHash - The transaction hash used to locate the transaction in the explorer.
+ * @return {string} The full URL to the transaction details page on the blockchain explorer.
+ */
 export function getExplorerUrl(txHash: string): string {
     const chainConfig = getChainConfig();
     return `${chainConfig.explorer}/tx/${txHash}`;
 }
+

@@ -1,5 +1,5 @@
-import {v4 as uuidv4} from 'uuid';
-import {getDatabase} from "./index";
+import { v4 as uuidv4 } from 'uuid';
+import { getDatabase } from "./index";
 import type {
     Merchant,
     MerchantStats,
@@ -211,6 +211,22 @@ export const MerchantRepository = {
             )
             .get(merchantId) as { total: number; count: number };
 
+        // Payout Stats (Allocations)
+        const pendingResult = db.prepare(`
+            SELECT COALESCE(SUM(amount), 0) as total, COUNT(DISTINCT employee_id) as count
+            FROM tip_allocations
+            WHERE merchant_id = ? AND status = 'pending'
+        `).get(merchantId) as { total: number, count: number };
+
+        const paidResult = db.prepare(`
+            SELECT COALESCE(SUM(amount), 0) as total, COUNT(DISTINCT employee_id) as count
+            FROM tip_allocations
+            WHERE merchant_id = ? AND status != 'pending'
+        `).get(merchantId) as { total: number, count: number };
+
+        // Active Employees
+        const employeeResult = db.prepare(`SELECT COUNT(*) as count FROM employees WHERE merchant_id = ? AND status = 'active'`).get(merchantId) as { count: number };
+
         // Calculate percentage changes
         const percentChangeWeek =
             lastWeekResult.total > 0
@@ -225,6 +241,11 @@ export const MerchantRepository = {
             tipCountTotal: allTimeResult.count,
             percentChangeToday: 12.3, // Would need yesterday's data for real calculation
             percentChangeWeek: Math.round(percentChangeWeek * 10) / 10,
+            activeEmployees: employeeResult.count,
+            pendingPayouts: pendingResult.total,
+            pendingPayoutsCount: pendingResult.count,
+            paidPayouts: paidResult.total,
+            paidPayoutsCount: paidResult.count
         };
     }
 };
@@ -256,13 +277,13 @@ export const TipSplitRepository = {
                 `
             )
             .all(merchantId) as Array<{
-            id: string;
-            merchant_id: string;
-            name: string;
-            percentage: number;
-            wallet_address: string | null;
-            employee_id: string | null;
-        }>;
+                id: string;
+                merchant_id: string;
+                name: string;
+                percentage: number;
+                wallet_address: string | null;
+                employee_id: string | null;
+            }>;
 
         return {
             merchantId,
@@ -369,6 +390,31 @@ export const EmployeeRepository = {
         `).run(id, data.merchantId, data.name, data.walletAddress, data.role, data.status || 'active', now, now);
 
         return this.findById(id)!;
+    },
+
+    getWithStats(merchantId: string): any[] {
+        const db = getDatabase();
+        // Join with tip allocations to get pending and total
+        const rows = db.prepare(`
+            SELECT 
+                e.*,
+                COALESCE(SUM(CASE WHEN ta.status = 'pending' THEN ta.amount ELSE 0 END), 0) as pending_amount,
+                COALESCE(SUM(CASE WHEN ta.status != 'pending' THEN ta.amount ELSE 0 END), 0) as total_earned,
+                (SELECT tx_hash FROM transactions WHERE merchant_id = e.merchant_id ORDER BY created_at DESC LIMIT 1) as last_tx_hash
+            FROM employees e
+            LEFT JOIN tip_allocations ta ON e.id = ta.employee_id
+            WHERE e.merchant_id = ?
+            GROUP BY e.id
+            ORDER BY e.name ASC
+        `).all(merchantId) as any[];
+
+        return rows.map(row => ({
+            ...mapEmployee(row),
+            pendingAmount: row.pending_amount,
+            totalEarned: row.total_earned,
+            lastTxHash: row.last_tx_hash || '0x...',
+            lastTxStatus: row.pending_amount > 0 ? 'Pending' : 'Paid'
+        }));
     }
 };
 
@@ -444,6 +490,16 @@ export const TipAllocationRepository = {
         const db = getDatabase();
         const rows = db.prepare("SELECT * FROM tip_allocations WHERE employee_id = ? ORDER BY created_at DESC LIMIT ?").all(employeeId, limit) as Record<string, unknown>[];
         return rows.map(mapTipAllocation);
+    },
+
+    markDistributed(employeeId: string): void {
+        const db = getDatabase();
+        const now = new Date().toISOString();
+        db.prepare(`
+            UPDATE tip_allocations 
+            SET status = 'distributed' 
+            WHERE employee_id = ? AND status = 'pending'
+        `).run(employeeId);
     }
 };
 

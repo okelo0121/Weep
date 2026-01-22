@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: weep-backend
+    env: node
+    plan: starter # Required for Disk support (Free tier doesn't support disks)
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    rootDir: apps/backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /var/data/weep.db
+      - key: SERVER_WALLET_PRIVATE_KEY
+        sync: false # User must enter this in dashboard
+    disk:
+      name: weep-sqlite-data
+      mountPath: /var/data
+      sizeGB: 1

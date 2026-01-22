@@ -30,7 +30,7 @@ function seedDatabase(): Database.Database {
 
     // checking if the directory exists
     if (!fs.existsSync(dbDirectory)) {
-        fs.mkdirSync(dbDirectory, {recursive: true});
+        fs.mkdirSync(dbDirectory, { recursive: true });
     }
 
     db = new Database(dbPath);
@@ -38,6 +38,7 @@ function seedDatabase(): Database.Database {
 
     // initialize the tables
     initializeTables(db);
+    migrateSchema(db);
     createIndexes(db);
     seedData(db);
 
@@ -121,9 +122,9 @@ function seedData(db: Database.Database): void {
 
         // Insert default tip splits
         const splits = [
-            {name: "Front Of House", percentage: 60},
-            {name: "Back Of House", percentage: 30},
-            {name: "Bar", percentage: 10},
+            { name: "Front Of House", percentage: 60 },
+            { name: "Back Of House", percentage: 30 },
+            { name: "Bar", percentage: 10 },
         ];
 
         const insertSplit = db.prepare(`
@@ -149,8 +150,8 @@ function seedData(db: Database.Database): void {
 
         // Insert some sample transactions for dashboard demo
         const sampleTxs = [
-            {amount: 2.5, date: "2025-12-07"},
-            {amount: 5.0, date: "2025-12-06"},
+            { amount: 2.5, date: "2025-12-07" },
+            { amount: 5.0, date: "2025-12-06" },
         ];
 
         const insertTx = db.prepare(`
@@ -228,9 +229,9 @@ function seedData(db: Database.Database): void {
 
         // Seed some demo employees
         const demoEmployees = [
-            {name: "Alice Johnson", role: "Front Of House", wallet: "0x1111111111111111111111111111111111111111"},
-            {name: "Bob Smith", role: "Back Of House", wallet: "0x2222222222222222222222222222222222222222"},
-            {name: "Charlie Davis", role: "Bar", wallet: "0x3333333333333333333333333333333333333333"},
+            { name: "Alice Johnson", role: "Front Of House", wallet: "0x1111111111111111111111111111111111111111" },
+            { name: "Bob Smith", role: "Back Of House", wallet: "0x2222222222222222222222222222222222222222" },
+            { name: "Charlie Davis", role: "Bar", wallet: "0x3333333333333333333333333333333333333333" },
         ];
 
         const insertEmployee = db.prepare(`
@@ -458,3 +459,38 @@ function createTipAllocationTable(db: Database.Database): void {
         )
     `);
 }
+
+/**
+ * Migrates the database schema to ensure all expected columns exist.
+ * This handles cases where the database file exists but the schema has evolved.
+ */
+function migrateSchema(db: Database.Database): void {
+    try {
+        // Check merchants table
+        const merchantColumns = db.prepare("PRAGMA table_info(merchants)").all() as any[];
+        const hasPolicyId = merchantColumns.some(c => c.name === 'on_chain_policy_id');
+        if (!hasPolicyId) {
+            console.log("Migrating schema: Adding on_chain_policy_id to merchants");
+            db.prepare("ALTER TABLE merchants ADD COLUMN on_chain_policy_id INTEGER").run();
+        }
+
+        // Check transactions table
+        const txColumns = db.prepare("PRAGMA table_info(transactions)").all() as any[];
+        const hasTxPolicyId = txColumns.some(c => c.name === 'on_chain_policy_id');
+        if (!hasTxPolicyId) {
+            console.log("Migrating schema: Adding on_chain_policy_id to transactions");
+            db.prepare("ALTER TABLE transactions ADD COLUMN on_chain_policy_id INTEGER").run();
+        }
+
+        // Check tip_splits table
+        const splitColumns = db.prepare("PRAGMA table_info(tip_splits)").all() as any[];
+        const hasEmployeeId = splitColumns.some(c => c.name === 'employee_id');
+        if (!hasEmployeeId) {
+            console.log("Migrating schema: Adding employee_id to tip_splits");
+            db.prepare("ALTER TABLE tip_splits ADD COLUMN employee_id TEXT").run();
+        }
+    } catch (error) {
+        console.error("Schema migration failed:", error);
+    }
+}
+

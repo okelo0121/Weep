@@ -1,6 +1,6 @@
-import {createThirdwebClient, defineChain} from "thirdweb";
-import {privateKeyToAccount} from "thirdweb/wallets";
-import {type ChainConfig, getChainConfig, USDC_DECIMALS} from "./chains";
+import { createThirdwebClient, defineChain } from "thirdweb";
+import { privateKeyToAccount } from "thirdweb/wallets";
+import { type ChainConfig, getChainConfig, USDC_DECIMALS } from "./chains";
 
 
 interface FacilitatorConfig {
@@ -132,7 +132,7 @@ export class ThirdWebFacilitator {
             JSON.parse(Buffer.from(paymentPayload, "base64").toString("utf-8"));
 
             // let us simulate a successful settlement for hackathon demo
-            const mockTxHash = `0x${Array.from({length: 64}, () => Math.floor(Math.random() * 16)
+            const mockTxHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16)
                 .toString(16)).join("")}`
 
             return {
@@ -251,7 +251,7 @@ export function getThirdWebClient(): ReturnType<typeof createThirdwebClient> {
             throw new Error("ThirdWeb secret key is required!!");
         }
 
-        _client = createThirdwebClient({secretKey});
+        _client = createThirdwebClient({ secretKey });
 
     }
 
@@ -265,9 +265,9 @@ export function getThirdWebClient(): ReturnType<typeof createThirdwebClient> {
  * @return {ReturnType<typeof privateKeyToAccount>} The server account.
  */
 export function getServerAccount() {
-    const privateKey = process.env.PRIVATE_KEY;
+    const privateKey = process.env.SERVER_WALLET_PRIVATE_KEY;
     if (!privateKey) {
-        throw new Error("PRIVATE_KEY is required for contract interaction");
+        throw new Error("SERVER_WALLET_PRIVATE_KEY is required for contract interaction");
     }
     return privateKeyToAccount({
         privateKey,

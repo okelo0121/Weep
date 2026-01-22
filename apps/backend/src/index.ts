@@ -1,10 +1,8 @@
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from "express-rate-limit";
-
-dotenv.config();
 
 import merchantRoutes from './routes/merchants';
 import webhookRoutes from './routes/webhooks';
@@ -14,8 +12,9 @@ import disputeRoutes from './routes/disputes';
 import receiptRoutes from './routes/receipts';
 import embedRoutes from './routes/embed';
 import paymentRoutes from './routes/payments';
-import {getChainConfig} from "./config/chains";
-import {swaggerUi, specs} from "./swagger";
+import { blockchainRouter } from './routes/blockchain';
+import { getChainConfig } from "./config/chains";
+import { swaggerUi, specs } from "./swagger";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,7 +23,13 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet());
 app.use(
     cors({
-        origin: process.env.FRONTEND_URL || "*",
+        origin: [
+            process.env.FRONTEND_URL || "http://localhost:3000",
+            "http://localhost:5173",
+            "http://localhost:8080",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:8080"
+        ],
         credentials: true,
     })
 );
@@ -35,7 +40,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs));
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     limit: 100, // limit each IP to 100 requests per windowMs
-    message: {error: "Too many requests, please try again later"},
+    message: { error: "Too many requests, please try again later" },
 });
 app.use("/api/", limiter);
 
@@ -75,6 +80,7 @@ app.use("/api/disputes", disputeRoutes);
 app.use("/api/receipts", receiptRoutes);
 app.use("/api/embed", embedRoutes);
 app.use("/api/webhooks", webhookRoutes);
+app.use("/api/blockchain", blockchainRouter);
 
 
 // Root endpoint
@@ -127,7 +133,7 @@ app.get("/api", (_req, res) => {
 
 // 404 handler
 app.use((_req, res) => {
-    res.status(404).json({error: "Endpoint not found"});
+    res.status(404).json({ error: "Endpoint not found" });
 });
 
 // Error handler
@@ -139,7 +145,7 @@ app.use(
         _next: express.NextFunction
     ) => {
         console.error("Error:", err.message);
-        res.status(500).json({error: "Internal server error"});
+        res.status(500).json({ error: "Internal server error" });
     }
 );
 

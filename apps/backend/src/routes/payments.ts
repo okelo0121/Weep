@@ -1,17 +1,24 @@
-import {Router} from "express";
-import {ApiResponse, PreparePaymentResponse, SettlePaymentResponse, VerifyPaymentResponse} from "../types";
+import { Router } from "express";
+import { ApiResponse, PreparePaymentResponse, SettlePaymentResponse, VerifyPaymentResponse } from "../types";
 import {
     generatePaymentUrl,
     getExplorerUrl,
     getPaymentStatus,
     preparePayment,
     settlePayment,
+    simulatePayment,
     verifyPayment
 } from "../services";
-import {getFacilitator} from "../config/thirdweb";
-import {getChainConfig} from "../config/chains";
+import { getFacilitator } from "../config/thirdweb";
+import { getChainConfig } from "../config/chains";
 
 const router = Router();
+
+// ... existing routes ...
+// (I will target the end of file to append route, and top of file to fix imports)
+
+
+
 
 /**
  * @swagger
@@ -74,7 +81,7 @@ const router = Router();
  */
 router.post("/prepare", async (request, response) => {
     try {
-        const {sessionId} = request.body;
+        const { sessionId } = request.body;
 
         if (!sessionId) {
             return response.status(400).json({
@@ -157,7 +164,7 @@ router.post("/prepare", async (request, response) => {
  */
 router.post("/verify", async (request, response) => {
     try {
-        const {sessionId, paymentPayload} = request.body;
+        const { sessionId, paymentPayload } = request.body;
 
         if (!sessionId || !paymentPayload) {
             return response.status(400).json({
@@ -248,7 +255,7 @@ router.post("/verify", async (request, response) => {
  */
 router.post("/settle", async (request, response) => {
     try {
-        const {sessionId, paymentPayload, payerAddress} = request.body;
+        const { sessionId, paymentPayload, payerAddress } = request.body;
 
         if (!sessionId || !paymentPayload || !payerAddress) {
             return response.status(400).json({
@@ -326,7 +333,7 @@ router.post("/settle", async (request, response) => {
  */
 router.get("/status/:sessionId", (request, response) => {
     try {
-        const {sessionId} = request.params;
+        const { sessionId } = request.params;
 
         const result = getPaymentStatus(sessionId);
 
@@ -406,7 +413,7 @@ router.get("/status/:sessionId", (request, response) => {
  */
 router.post("/url", (request, response) => {
     try {
-        const {sessionId} = request.body;
+        const { sessionId } = request.body;
         const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
         if (!sessionId) {
@@ -420,7 +427,7 @@ router.post("/url", (request, response) => {
 
         return response.json({
             success: true,
-            data: {paymentUrl},
+            data: { paymentUrl },
         });
     } catch (error) {
         console.error("Error generating payment URL:", error);
@@ -564,6 +571,31 @@ router.get("/config", (_request, response) => {
         return response.status(500).json({
             success: false,
             error: "Failed to fetch payment configuration",
+        } as ApiResponse<null>);
+    }
+});
+
+router.post("/simulate", async (request, response) => {
+    try {
+        const { sessionId, payerAddress } = request.body;
+        if (!sessionId) {
+            return response.status(400).json({
+                success: false,
+                error: "sessionId is required",
+            } as ApiResponse<null>);
+        }
+
+        const result = await simulatePayment(sessionId, payerAddress);
+
+        return response.json({
+            success: true,
+            data: result,
+        } as ApiResponse<SettlePaymentResponse>);
+    } catch (error) {
+        console.error("Error simulating payment:", error);
+        return response.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : "Simulation failed",
         } as ApiResponse<null>);
     }
 });
