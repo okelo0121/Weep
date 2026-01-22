@@ -67,7 +67,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-black font-sans text-foreground selection:bg-primary/20">
       {/* Top Navigation Bar */}
-      <header className="fixed top-0 left-0 right-0 h-24 bg-black border-b border-white/10 flex items-center justify-between px-6 md:px-12 z-50 transition-all duration-300">
+      <header className="fixed top-0 left-0 right-0 h-32 bg-black border-b border-white/10 flex items-center justify-between px-6 md:px-12 z-50 transition-all duration-300">
         <div className="flex items-center gap-6 md:gap-16">
           {/* Mobile Menu Button - Increased size */}
           <button
@@ -77,9 +77,9 @@ export default function Dashboard() {
             {isMobileMenuOpen ? <X size={32} /> : <Menu size={32} />}
           </button>
 
-          {/* Logo - Increased size */}
+          {/* Logo - Maximum size */}
           <Link to="/" className="flex items-center gap-3 group">
-            <img src={weepLogo} alt="Weep" className="h-12 md:h-16 w-auto transition-transform group-hover:scale-105" />
+            <img src={weepLogo} alt="Weep" className="h-16 md:h-24 w-auto transition-transform group-hover:scale-110" />
           </Link>
 
           {/* Nav Links - Increased size & spacing */}
@@ -115,7 +115,7 @@ export default function Dashboard() {
       )}
 
       {/* Main Content Area */}
-      <main className="pt-36 px-6 md:px-12 max-w-[1600px] mx-auto pb-16">
+      <main className="pt-44 px-6 md:px-12 max-w-[1600px] mx-auto pb-16">
         {/* Page Header & Toggle */}
         <div className="bg-[#111111] rounded-2xl p-4 md:p-6 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/5">
           <div>
