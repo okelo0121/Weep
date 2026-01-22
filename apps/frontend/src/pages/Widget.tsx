@@ -220,8 +220,8 @@ export default function Widget() {
           <div className="glass-card rounded-xl p-8 text-center">
             <h2 className="text-2xl font-bold mb-4">About Weep Protocol</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
-              Weep Protocol is the leading AI-powered tipping infrastructure for the modern web. 
-              Our widget enables seamless cryptocurrency tips with intelligent suggestions, 
+              Weep Protocol is the leading AI-powered tipping infrastructure for the modern web.
+              Our widget enables seamless cryptocurrency tips with intelligent suggestions,
               secure transactions, and instant settlements.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -232,7 +232,7 @@ export default function Widget() {
                 </Link>
               </Button>
               <Button variant="outline" asChild>
-                <a href="#" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/okelo0121/Weep" target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" />
                   View on GitHub
                 </a>
