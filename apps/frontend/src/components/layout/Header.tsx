@@ -19,20 +19,20 @@ export function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-card">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-6 py-6 max-w-[1600px]">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <img src={weepLogo} alt="Weep" className="w-20 h-20 object-contain" />
+          <Link to="/" className="flex items-center gap-3 transition-transform hover:scale-105">
+            <img src={weepLogo} alt="Weep" className="h-20 w-auto object-contain" />
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-12">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`text-sm font-medium transition-colors hover:text-primary ${location.pathname === link.to
+                className={`text-lg font-bold transition-all hover:text-primary hover:scale-105 ${location.pathname === link.to
                   ? 'text-primary'
                   : 'text-muted-foreground'
                   }`}
@@ -48,6 +48,7 @@ export function Header() {
               client={client}
               chain={chain}
               theme="dark"
+              connectButton={{ className: "!h-12 !px-6 !text-base !font-bold" }}
               connectModal={{
                 size: "compact",
               }}

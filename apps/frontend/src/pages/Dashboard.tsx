@@ -47,7 +47,7 @@ const NavLink = ({ active, children, href }: { active?: boolean; children: React
   <a
     href={href}
     className={cn(
-      "text-sm font-medium transition-colors hover:text-primary",
+      "text-lg font-bold transition-colors hover:text-primary tracking-wide",
       active ? "text-white" : "text-gray-400"
     )}
   >
@@ -67,23 +67,23 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-black font-sans text-foreground selection:bg-primary/20">
       {/* Top Navigation Bar */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-black border-b border-white/10 flex items-center justify-between px-4 md:px-6 z-50">
-        <div className="flex items-center gap-4 md:gap-12">
-          {/* Mobile Menu Button */}
+      <header className="fixed top-0 left-0 right-0 h-24 bg-black border-b border-white/10 flex items-center justify-between px-6 md:px-12 z-50 transition-all duration-300">
+        <div className="flex items-center gap-6 md:gap-16">
+          {/* Mobile Menu Button - Increased size */}
           <button
-            className="md:hidden text-gray-400 hover:text-white"
+            className="md:hidden text-gray-400 hover:text-white transform hover:scale-110 transition-transform"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
-            {isMobileMenuOpen ? <X /> : <Menu />}
+            {isMobileMenuOpen ? <X size={32} /> : <Menu size={32} />}
           </button>
 
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <img src={weepLogo} alt="Weep" className="h-8 md:h-12 w-auto" />
+          {/* Logo - Increased size */}
+          <Link to="/" className="flex items-center gap-3 group">
+            <img src={weepLogo} alt="Weep" className="h-12 md:h-16 w-auto transition-transform group-hover:scale-105" />
           </Link>
 
-          {/* Nav Links */}
-          <nav className="hidden md:flex items-center gap-8">
+          {/* Nav Links - Increased size & spacing */}
+          <nav className="hidden md:flex items-center gap-12">
             <NavLink active href="/dashboard">Dashboard</NavLink>
             <NavLink href="/widget">Widget</NavLink>
             <NavLink href="/docs">Docs</NavLink>
@@ -91,13 +91,13 @@ export default function Dashboard() {
           </nav>
         </div>
 
-        {/* Right Side - Wallet & Balance */}
-        <div className="flex items-center gap-4">
+        {/* Right Side - Wallet & Balance - enhanced visibility */}
+        <div className="flex items-center gap-6">
           <ConnectButton
             client={client}
             chain={chain}
             theme="dark"
-            connectButton={{ className: "!h-10 !px-4 !text-sm" }}
+            connectButton={{ className: "!h-12 !px-6 !text-base !font-bold" }}
           />
         </div>
       </header>
@@ -115,7 +115,7 @@ export default function Dashboard() {
       )}
 
       {/* Main Content Area */}
-      <main className="pt-24 px-6 md:px-12 max-w-[1400px] mx-auto pb-12">
+      <main className="pt-36 px-6 md:px-12 max-w-[1600px] mx-auto pb-16">
         {/* Page Header & Toggle */}
         <div className="bg-[#111111] rounded-2xl p-4 md:p-6 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/5">
           <div>
