@@ -20,25 +20,23 @@ const useCases = [
 
 export function UsingWeepSection() {
   return (
-    <section className="py-24 bg-black relative">
-      <div className="container mx-auto px-6 md:px-12">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">Using Weep</h2>
+    <section className="py-20 bg-secondary/20">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Using Weep</h2>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Transform your tipping experience with our comprehensive solution.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {useCases.map((useCase, index) => (
-            <div key={index} className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-8 hover:border-blue-500/30 transition-all duration-300 group relative overflow-hidden">
-              {/* Accent Gradient */}
-              <div className="absolute top-0 left-0 w-20 h-1 bg-blue-500 rounded-full" />
-
-              {/* Icon */}
-              <div className="w-14 h-14 rounded-xl bg-blue-900/10 flex items-center justify-center mb-6 mt-2 group-hover:scale-110 transition-transform duration-300">
-                <useCase.icon className="h-7 w-7 text-blue-500" />
+            <div key={index} className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6">
+                <useCase.icon className="h-8 w-8 text-primary" />
               </div>
-
-              <h3 className="text-xl font-bold mb-4 text-white">{useCase.title}</h3>
-              <p className="text-sm text-gray-400 leading-relaxed">{useCase.description}</p>
+              <h3 className="text-xl font-semibold mb-3 text-foreground">{useCase.title}</h3>
+              <p className="text-muted-foreground leading-relaxed">{useCase.description}</p>
             </div>
           ))}
         </div>
