@@ -1,15 +1,13 @@
 import { Layout } from '@/components/layout/Layout';
 import { HeroSection } from '@/components/landing/HeroSection';
-import { DemoWidget } from '@/components/landing/DemoWidget';
-import { FeaturesSection } from '@/components/landing/FeaturesSection';
+import { DemoWidgetSection } from '@/components/landing/DemoWidgetSection';
 import { UsingWeepSection } from '@/components/landing/UsingWeepSection';
 
 const Index = () => {
   return (
     <Layout>
       <HeroSection />
-      <DemoWidget />
-      <FeaturesSection />
+      <DemoWidgetSection />
       <UsingWeepSection />
     </Layout>
   );
