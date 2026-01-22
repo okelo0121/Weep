@@ -46,7 +46,10 @@ const VALID_REASONS: DisputeReason[] = [
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/Dispute' }
  */
 /**
  * @route POST /api/disputes
@@ -144,7 +147,10 @@ router.post("/", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/Dispute' }
  *       404:
  *         description: Dispute not found
  */
@@ -206,7 +212,12 @@ router.get("/:id", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/Dispute' }
  *       404:
  *         description: Merchant not found
  */
@@ -288,7 +299,10 @@ router.get("/merchant/:merchantId", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/Dispute' }
  *       404:
  *         description: Dispute not found
  */
@@ -370,7 +384,16 @@ router.patch("/:id/status", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       value: { type: string }
+ *                       label: { type: string }
  */
 /**
  * @route GET /api/disputes/meta/reasons

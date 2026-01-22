@@ -25,7 +25,32 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     merchant:
+ *                       type: object
+ *                       properties:
+ *                         id: { type: string }
+ *                         name: { type: string }
+ *                         slug: { type: string }
+ *                         avatar: { type: string, nullable: true }
+ *                     network:
+ *                       type: object
+ *                       properties:
+ *                         chainId: { type: number }
+ *                         name: { type: string }
+ *                         currency: { type: string }
+ *                         explorer: { type: string }
+ *                     features:
+ *                       type: object
+ *                       properties:
+ *                         aiSuggestions: { type: boolean }
+ *                         customTip: { type: boolean }
+ *                         roundUp: { type: boolean }
  */
 /**
  * @route GET /api/embed/config
@@ -128,7 +153,21 @@ router.get("/config", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     embedUrl: { type: string }
+ *                     sessionId: { type: string, nullable: true }
+ *                     expiresAt: { type: string, format: 'date-time' }
+ *                     merchant:
+ *                       type: object
+ *                       properties:
+ *                         id: { type: string }
+ *                         name: { type: string }
+ *                         slug: { type: string }
  */
 /**
  * @route POST /api/embed/session
@@ -244,7 +283,17 @@ router.post("/session", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: string }
+ *                     name: { type: string }
+ *                     slug: { type: string }
+ *                     avatar: { type: string, nullable: true }
+ *                     walletAddress: { type: string }
  */
 /**
  * @route GET /api/embed/merchants/:slug

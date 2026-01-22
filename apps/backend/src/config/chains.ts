@@ -5,6 +5,10 @@ export interface ChainConfig {
     explorer: string;
     rpc: string;
     name: string;
+    contracts: {
+        registry: string;
+        distributor: string;
+    };
 }
 
 export const cronosMainnet: ChainConfig = {
@@ -13,7 +17,11 @@ export const cronosMainnet: ChainConfig = {
     usdc: "0xc21223249CA28397B4B6541dfFaEcC539BfF0c59",
     explorer: "https://explorer.cronos.org/",
     rpc: "https://evm.cronos.org",
-    name: "Cronos Mainnet"
+    name: "Cronos Mainnet",
+    contracts: {
+        registry: "0x0000000000000000000000000000000000000000", // TBD
+        distributor: "0x0000000000000000000000000000000000000000", // TBD
+    }
 }
 
 export const cronosTestnet: ChainConfig = {
@@ -22,7 +30,11 @@ export const cronosTestnet: ChainConfig = {
     usdc: "0x7C8cf427BB01246843bDED21B71BeF343a824712",
     explorer: "https://explorer.cronos.org/testnet",
     rpc: "https://evm-t3.cronos.org",
-    name: "Cronos Testnet"
+    name: "Cronos Testnet",
+    contracts: {
+        registry: "0x81aec0b87caa631365b0ac0b628a84afdf6f1fe9",
+        distributor: "0xa9eaf8e76966b60e9ab63c74a42605e84adf9ece",
+    }
 }
 
 export const CHAIN_CONFIG: Record<string, ChainConfig> = {

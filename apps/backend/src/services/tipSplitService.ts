@@ -1,5 +1,5 @@
+import {TipAllocationRepository, TipSplitRepository, MerchantRepository} from "../db/models";
 import {TipSplit} from "../types";
-import {MerchantRepository, TipSplitRepository} from "../db/models";
 
 /**
  * Represents the calculation details for a split operation, including
@@ -11,12 +11,14 @@ import {MerchantRepository, TipSplitRepository} from "../db/models";
  * @property {number} percentage - The percentage allocated to the entity.
  * @property {number} amount - The calculated amount based on the percentage split.
  * @property {string} [walletAddress] - An optional wallet address associated with the entity.
+ * @property {string} [employeeId] - An optional employee ID associated with the entity.
  */
 export interface SplitCalculation {
     name: string;
     percentage: number;
     amount: number;
     walletAddress?: string;
+    employeeId?: string;
 }
 
 /**
@@ -30,12 +32,60 @@ export function calculateTipSplit(
     tipAmount: number,
     splits: TipSplit[]
 ): SplitCalculation[] {
-    return splits.map((split) => ({
-        name: split.name,
-        percentage: split.percentage,
-        amount: Math.round(tipAmount * (split.percentage / 100) * 100) / 100,
-        walletAddress: split.walletAddress,
-    }))
+    if (!splits || splits.length === 0) return [];
+
+    const tipInCents = Math.round(tipAmount * 100);
+    let distributedCents = 0;
+
+    return splits.map((split, index) => {
+        let amountCents: number;
+
+        if (index === splits.length - 1) {
+            // Last split gets the remainder to ensure total matches exactly
+            amountCents = Math.max(0, tipInCents - distributedCents);
+        } else {
+            amountCents = Math.round(tipInCents * (split.percentage / 100));
+            distributedCents += amountCents;
+        }
+
+        return {
+            name: split.name,
+            percentage: split.percentage,
+            amount: amountCents / 100,
+            walletAddress: split.walletAddress,
+            employeeId: split.employeeId,
+        };
+    });
+}
+
+/**
+ * Records the tip allocations for a confirmed transaction.
+ *
+ * @param {string} transactionId - The ID of the transaction.
+ * @param {string} merchantId - The ID of the merchant.
+ * @param {number} tipAmount - The total tip amount.
+ */
+export function recordTipAllocations(
+    transactionId: string,
+    merchantId: string,
+    tipAmount: number
+): void {
+    const merchant = MerchantRepository.findById(merchantId);
+    const splitConfig = TipSplitRepository.getByMerchantId(merchantId);
+    const calculations = calculateTipSplit(tipAmount, splitConfig.splits);
+
+    const allocations = calculations.map(calc => ({
+        transactionId,
+        merchantId,
+        employeeId: calc.employeeId,
+        recipientName: calc.name,
+        recipientWallet: calc.walletAddress || merchant?.walletAddress || '0x0000000000000000000000000000000000000000',
+        amount: calc.amount,
+        percentage: calc.percentage,
+        status: 'pending' as const
+    }));
+
+    TipAllocationRepository.createMany(allocations);
 }
 
 /**

@@ -33,7 +33,14 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     session: { $ref: '#/components/schemas/TipSession' }
+ *                     merchant: { $ref: '#/components/schemas/Merchant' }
  */
 /**
  * @route POST /api/sessions
@@ -130,7 +137,14 @@ router.post("/", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     session: { $ref: '#/components/schemas/TipSession' }
+ *                     merchant: { $ref: '#/components/schemas/Merchant' }
  *       404:
  *         description: Session not found
  */
@@ -217,7 +231,14 @@ router.get("/:id", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     session: { $ref: '#/components/schemas/TipSession' }
+ *                     merchant: { $ref: '#/components/schemas/Merchant' }
  *       400:
  *         description: Invalid tip selection or session status
  *       404:

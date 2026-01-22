@@ -1,6 +1,21 @@
-import {ApiResponse, Merchant, MerchantStats, RecentTip, TipSplitConfig} from "../types";
-import {MerchantRepository, TipSplitRepository, TransactionRepository} from "../db/models";
+import {
+    ApiResponse,
+    Employee,
+    Merchant,
+    MerchantStats,
+    RecentTip,
+    TipAllocation,
+    TipSplitConfig
+} from "../types";
+import {
+    EmployeeRepository,
+    MerchantRepository,
+    TipAllocationRepository,
+    TipSplitRepository,
+    TransactionRepository
+} from "../db/models";
 import {Router} from "express";
+import {ContractService} from "../services";
 
 const router = Router();
 
@@ -23,7 +38,10 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/Merchant' }
  *       404:
  *         description: Merchant not found
  */
@@ -90,7 +108,10 @@ router.get("/:id", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/MerchantStats' }
  *       404:
  *         description: Merchant not found
  */
@@ -163,7 +184,12 @@ router.get("/:id/stats", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/RecentTip' }
  *       404:
  *         description: Merchant not found
  */
@@ -343,7 +369,10 @@ router.get("/:id/tips/export", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/TipSplitConfig' }
  *       404:
  *         description: Merchant not found
  */
@@ -428,7 +457,10 @@ router.get("/:id/split-config", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/TipSplitConfig' }
  *       400:
  *         description: Invalid split configuration
  *       404:
@@ -457,7 +489,7 @@ router.get("/:id/split-config", (request, response) => {
  *   .then(response => response.json())
  *   .then(data => console.log(data));
  */
-router.put("/:id/split-config", (request, response) => {
+router.put("/:id/split-config", async (request, response) => {
     try {
         const {id} = request.params;
         const {splits} = request.body;
@@ -489,11 +521,36 @@ router.put("/:id/split-config", (request, response) => {
 
         const updatedConfig = TipSplitRepository.update(merchant.id, splits);
 
-        return response.json({
-            success: true,
-            data: updatedConfig,
-            message: "Split configuration updated successfully",
-        } as ApiResponse<TipSplitConfig>);
+        // Sync with Web3 if possible
+        try {
+            const {recipients, percentages} = ContractService.preparePolicyData(
+                updatedConfig.splits,
+                merchant.walletAddress
+            );
+
+            // This invokes the Web3 contract to create/update the distribution policy
+            const onChainPolicyId = await ContractService.syncPolicyOnChain(recipients, percentages);
+            
+            // Store the on-chain reference
+            MerchantRepository.updateOnChainPolicyId(merchant.id, onChainPolicyId);
+            
+            return response.json({
+                success: true,
+                data: {
+                    ...updatedConfig,
+                    onChainPolicyId
+                },
+                message: "Split configuration updated and synced on-chain",
+            } as ApiResponse<TipSplitConfig & { onChainPolicyId: number }>);
+        } catch (web3Error) {
+            console.warn("Failed to sync policy on-chain, but off-chain update succeeded:", web3Error);
+            
+            return response.json({
+                success: true,
+                data: updatedConfig,
+                message: "Split configuration updated successfully (on-chain sync skipped/failed)",
+            } as ApiResponse<TipSplitConfig>);
+        }
     } catch (error) {
         console.error("Error updating split config:", error);
         return response.status(500).json({
@@ -534,7 +591,10 @@ router.put("/:id/split-config", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/Merchant' }
  *       400:
  *         description: Slug already taken or invalid data
  */
@@ -607,6 +667,282 @@ router.post("/", (request, response) => {
         return response.status(500).json({
             success: false,
             error: "Failed to create merchant",
+        } as ApiResponse<null>);
+    }
+});
+
+/**
+ * @swagger
+ * /api/merchants/{id}/employees:
+ *   get:
+ *     summary: Get all employees for a merchant
+ *     tags: [Merchants]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier or slug of the merchant
+ *     responses:
+ *       200:
+ *         description: Employees retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/Employee' }
+ */
+/**
+ * @route GET /api/merchants/:id/employees
+ * @desc Get all employees for a merchant
+ * @access Public
+ */
+router.get("/:id/employees", (request, response) => {
+    try {
+        const {id} = request.params;
+        
+        let merchant = MerchantRepository.findById(id);
+        if (!merchant) {
+            merchant = MerchantRepository.findBySlug(id);
+        }
+
+        if (!merchant) {
+            return response.status(404).json({
+                success: false,
+                error: "Merchant not found",
+            } as ApiResponse<null>);
+        }
+
+        const employees = EmployeeRepository.getByMerchantId(merchant.id);
+        
+        return response.json({
+            success: true,
+            data: employees,
+        } as ApiResponse<Employee[]>);
+    } catch (error) {
+        return response.status(500).json({
+            success: false,
+            error: "Failed to fetch employees",
+        } as ApiResponse<null>);
+    }
+});
+
+/**
+ * @swagger
+ * /api/merchants/{id}/employees:
+ *   post:
+ *     summary: Add a new employee to a merchant
+ *     tags: [Merchants]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier or slug of the merchant
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - walletAddress
+ *               - role
+ *             properties:
+ *               name:
+ *                 type: string
+ *               walletAddress:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Employee added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/Employee' }
+ */
+/**
+ * @route POST /api/merchants/:id/employees
+ * @desc Add a new employee to a merchant
+ * @access Public
+ */
+router.post("/:id/employees", (request, response) => {
+    try {
+        const {id} = request.params;
+        const {name, walletAddress, role} = request.body;
+
+        if (!name || !walletAddress || !role) {
+            return response.status(400).json({
+                success: false,
+                error: "Name, walletAddress, and role are required",
+            } as ApiResponse<null>);
+        }
+
+        let merchant = MerchantRepository.findById(id);
+        if (!merchant) {
+            merchant = MerchantRepository.findBySlug(id);
+        }
+
+        if (!merchant) {
+            return response.status(404).json({
+                success: false,
+                error: "Merchant not found",
+            } as ApiResponse<null>);
+        }
+
+        const employee = EmployeeRepository.create({
+            merchantId: merchant.id,
+            name,
+            walletAddress,
+            role,
+            status: 'active'
+        });
+
+        return response.status(201).json({
+            success: true,
+            data: employee,
+            message: "Employee added successfully",
+        } as ApiResponse<Employee>);
+    } catch (error) {
+        return response.status(500).json({
+            success: false,
+            error: "Failed to add employee",
+        } as ApiResponse<null>);
+    }
+});
+
+/**
+ * @swagger
+ * /api/merchants/{id}/allocations:
+ *   get:
+ *     summary: Get verifiable tip allocation records for a merchant
+ *     tags: [Merchants]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier or slug of the merchant
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of allocations to retrieve
+ *     responses:
+ *       200:
+ *         description: Allocations retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/TipAllocation' }
+ */
+/**
+ * @route GET /api/merchants/:id/allocations
+ * @desc Get verifiable tip allocation records for a merchant
+ * @access Public
+ */
+router.get("/:id/allocations", (request, response) => {
+    try {
+        const {id} = request.params;
+        const limit = request.query.limit ? parseInt(request.query.limit as string) : 50;
+        
+        let merchant = MerchantRepository.findById(id);
+        if (!merchant) {
+            merchant = MerchantRepository.findBySlug(id);
+        }
+
+        if (!merchant) {
+            return response.status(404).json({
+                success: false,
+                error: "Merchant not found",
+            } as ApiResponse<null>);
+        }
+
+        const allocations = TipAllocationRepository.getByMerchantId(merchant.id, limit);
+        
+        return response.json({
+            success: true,
+            data: allocations,
+        } as ApiResponse<TipAllocation[]>);
+    } catch (error) {
+        return response.status(500).json({
+            success: false,
+            error: "Failed to fetch allocations",
+        } as ApiResponse<null>);
+    }
+});
+
+/**
+ * @swagger
+ * /api/merchants/employees/{id}/allocations:
+ *   get:
+ *     summary: Get verifiable tip allocation records for a specific employee
+ *     tags: [Merchants]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the employee
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of allocations to retrieve
+ *     responses:
+ *       200:
+ *         description: Employee allocations retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/TipAllocation' }
+ */
+/**
+ * @route GET /api/merchants/employees/:id/allocations
+ * @desc Get verifiable tip allocation records for a specific employee
+ * @access Public
+ */
+router.get("/employees/:id/allocations", (request, response) => {
+    try {
+        const {id} = request.params;
+        const limit = request.query.limit ? parseInt(request.query.limit as string) : 50;
+        
+        const allocations = TipAllocationRepository.getByEmployeeId(id, limit);
+        
+        return response.json({
+            success: true,
+            data: allocations,
+        } as ApiResponse<TipAllocation[]>);
+    } catch (error) {
+        return response.status(500).json({
+            success: false,
+            error: "Failed to fetch employee allocations",
         } as ApiResponse<null>);
     }
 });

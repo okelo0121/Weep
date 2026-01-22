@@ -13,8 +13,17 @@ import type {
     DisputeReason,
     DisputeStatus,
     RecentTip,
+    Employee,
+    TipAllocation,
 } from '../types';
-import {mapDispute, mapMerchant, mapSession, mapTransaction} from "./mappers";
+import {
+    mapDispute,
+    mapMerchant,
+    mapSession,
+    mapTransaction,
+    mapEmployee,
+    mapTipAllocation
+} from "./mappers";
 
 /**
  * A repository for managing merchant data, including retrieving, creating, and analyzing merchants.
@@ -39,6 +48,7 @@ export const MerchantRepository = {
                            slug,
                            wallet_address,
                            avatar,
+                           on_chain_policy_id,
                            created_at,
                            updated_at
                     FROM merchants
@@ -66,6 +76,7 @@ export const MerchantRepository = {
                            slug,
                            wallet_address,
                            avatar,
+                           on_chain_policy_id,
                            created_at,
                            updated_at
                     FROM merchants
@@ -95,9 +106,10 @@ export const MerchantRepository = {
                                        slug,
                                        wallet_address,
                                        avatar,
+                                       on_chain_policy_id,
                                        created_at,
                                        updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `
         ).run(
             id,
@@ -105,11 +117,26 @@ export const MerchantRepository = {
             data.slug,
             data.walletAddress,
             data.avatar || null,
+            data.onChainPolicyId || null,
             now,
             now
         );
 
         return this.findById(id)!;
+    },
+
+    updateOnChainPolicyId(id: string, onChainPolicyId: number): void {
+        const db = getDatabase();
+        const now = new Date().toISOString();
+
+        db.prepare(
+            `
+                UPDATE merchants
+                SET on_chain_policy_id = ?,
+                    updated_at         = ?
+                WHERE id = ?
+            `
+        ).run(onChainPolicyId, now, id);
     },
 
     /**
@@ -218,25 +245,34 @@ export const TipSplitRepository = {
         const rows = db
             .prepare(
                 `
-                    SELECT name,
+                    SELECT id,
+                           merchant_id,
+                           name,
                            percentage,
-                           wallet_address
+                           wallet_address,
+                           employee_id
                     FROM tip_splits
                     WHERE merchant_id = ?
                 `
             )
             .all(merchantId) as Array<{
+            id: string;
+            merchant_id: string;
             name: string;
             percentage: number;
             wallet_address: string | null;
+            employee_id: string | null;
         }>;
 
         return {
             merchantId,
             splits: rows.map((row) => ({
+                id: row.id,
+                merchantId: row.merchant_id,
                 name: row.name,
                 percentage: row.percentage,
                 walletAddress: row.wallet_address || undefined,
+                employeeId: row.employee_id || undefined,
             })),
         };
     },
@@ -255,33 +291,160 @@ export const TipSplitRepository = {
         const db = getDatabase();
         const now = new Date().toISOString();
 
-        // Delete existing splits
-        db.prepare("DELETE FROM tip_splits WHERE merchant_id = ?").run(merchantId);
+        db.transaction(() => {
+            // Delete existing splits
+            db.prepare("DELETE FROM tip_splits WHERE merchant_id = ?").run(merchantId);
 
-        // Insert new splits
-        const insert = db.prepare(`
-            INSERT INTO tip_splits (id,
-                                    merchant_id,
-                                    name,
-                                    percentage,
-                                    wallet_address,
-                                    created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `);
+            // Insert new splits
+            const insert = db.prepare(`
+                INSERT INTO tip_splits (id,
+                                        merchant_id,
+                                        name,
+                                        percentage,
+                                        wallet_address,
+                                        employee_id,
+                                        created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `);
 
-        splits.forEach((split, index) => {
-            insert.run(
-                `split_${merchantId}_${index}`,
-                merchantId,
-                split.name,
-                split.percentage,
-                split.walletAddress || null,
-                now
-            );
-        });
+            splits.forEach((split, index) => {
+                insert.run(
+                    split.id || `split_${uuidv4()}_${index}`,
+                    merchantId,
+                    split.name,
+                    split.percentage,
+                    split.walletAddress || null,
+                    split.employeeId || null,
+                    now
+                );
+            });
+        })();
 
         return this.getByMerchantId(merchantId);
     },
+};
+
+/**
+ * Repository for managing employees within the system.
+ */
+export const EmployeeRepository = {
+    /**
+     * Finds an employee by their unique identifier.
+     *
+     * @param {string} id - The unique identifier of the employee.
+     * @return {Employee | null}
+     */
+    findById(id: string): Employee | null {
+        const db = getDatabase();
+        const row = db.prepare("SELECT * FROM employees WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+        return row ? mapEmployee(row) : null;
+    },
+
+    /**
+     * Retrieves all employees associated with a specific merchant.
+     *
+     * @param {string} merchantId - The unique identifier of the merchant.
+     * @return {Employee[]}
+     */
+    getByMerchantId(merchantId: string): Employee[] {
+        const db = getDatabase();
+        const rows = db.prepare("SELECT * FROM employees WHERE merchant_id = ? ORDER BY name ASC").all(merchantId) as Record<string, unknown>[];
+        return rows.map(mapEmployee);
+    },
+
+    /**
+     * Creates a new employee record.
+     *
+     * @param {Omit<Employee, "id" | "createdAt" | "updatedAt">} data
+     * @return {Employee}
+     */
+    create(data: Omit<Employee, "id" | "createdAt" | "updatedAt">): Employee {
+        const db = getDatabase();
+        const now = new Date().toISOString();
+        const id = `employee_${uuidv4()}`;
+
+        db.prepare(`
+            INSERT INTO employees (id, merchant_id, name, wallet_address, role, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(id, data.merchantId, data.name, data.walletAddress, data.role, data.status || 'active', now, now);
+
+        return this.findById(id)!;
+    }
+};
+
+/**
+ * Repository for managing tip allocations (verifiable records of payments).
+ */
+export const TipAllocationRepository = {
+    /**
+     * Records a list of tip allocations.
+     *
+     * @param {Omit<TipAllocation, "id" | "createdAt">[]} allocations
+     */
+    createMany(allocations: Omit<TipAllocation, "id" | "createdAt">[]): void {
+        const db = getDatabase();
+        const now = new Date().toISOString();
+
+        const insert = db.prepare(`
+            INSERT INTO tip_allocations (id, transaction_id, merchant_id, employee_id, recipient_name, recipient_wallet, amount, percentage, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        db.transaction(() => {
+            for (const allocation of allocations) {
+                insert.run(
+                    `alloc_${uuidv4()}`,
+                    allocation.transactionId,
+                    allocation.merchantId,
+                    allocation.employeeId || null,
+                    allocation.recipientName,
+                    allocation.recipientWallet,
+                    allocation.amount,
+                    allocation.percentage,
+                    allocation.status || 'pending',
+                    now
+                );
+            }
+        })();
+    },
+
+    /**
+     * Retrieves allocations for a specific transaction.
+     *
+     * @param {string} transactionId
+     * @return {TipAllocation[]}
+     */
+    getByTransactionId(transactionId: string): TipAllocation[] {
+        const db = getDatabase();
+        const rows = db.prepare("SELECT * FROM tip_allocations WHERE transaction_id = ?").all(transactionId) as Record<string, unknown>[];
+        return rows.map(mapTipAllocation);
+    },
+
+    /**
+     * Retrieves allocations for a specific merchant (Operations Dashboard).
+     *
+     * @param {string} merchantId
+     * @param {number} limit
+     * @return {TipAllocation[]}
+     */
+    getByMerchantId(merchantId: string, limit: number = 50): TipAllocation[] {
+        const db = getDatabase();
+        const rows = db.prepare("SELECT * FROM tip_allocations WHERE merchant_id = ? ORDER BY created_at DESC LIMIT ?").all(merchantId, limit) as Record<string, unknown>[];
+        return rows.map(mapTipAllocation);
+    },
+
+    /**
+     * Retrieves allocations for a specific employee.
+     *
+     * @param {string} employeeId
+     * @param {number} limit
+     * @return {TipAllocation[]}
+     */
+    getByEmployeeId(employeeId: string, limit: number = 50): TipAllocation[] {
+        const db = getDatabase();
+        const rows = db.prepare("SELECT * FROM tip_allocations WHERE employee_id = ? ORDER BY created_at DESC LIMIT ?").all(employeeId, limit) as Record<string, unknown>[];
+        return rows.map(mapTipAllocation);
+    }
 };
 
 
@@ -542,6 +705,7 @@ export const TransactionRepository = {
         currency: string;
         txHash: string;
         networkId: string;
+        onChainPolicyId?: number;
     }): Transaction {
         const db = getDatabase();
         const now = new Date().toISOString();
@@ -550,9 +714,9 @@ export const TransactionRepository = {
         db.prepare(
             `
                 INSERT INTO transactions (id, session_id, merchant_id, payer_address, recipient_address,
-                                          bill_amount, tip_amount, total_amount, currency, tx_hash, network_id, status,
-                                          created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                          bill_amount, tip_amount, total_amount, currency, tx_hash, network_id, 
+                                          on_chain_policy_id, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `
         ).run(
             id,
@@ -566,6 +730,7 @@ export const TransactionRepository = {
             data.currency,
             data.txHash,
             data.networkId,
+            data.onChainPolicyId || null,
             "pending",
             now
         );

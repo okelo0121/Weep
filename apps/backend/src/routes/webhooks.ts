@@ -69,7 +69,10 @@ function verifyWebhookSignature(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
  */
 /**
  * @route POST /api/webhooks/payment
@@ -189,7 +192,11 @@ router.post("/payment", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 received: { type: object }
  */
 /**
  * @route POST /api/webhooks/test

@@ -6,8 +6,10 @@ import {
     VerifyPaymentResponse
 } from "../types";
 import {MerchantRepository, SessionRepository, TransactionRepository} from "../db/models";
+import {getDatabase} from "../db";
 import {createPaymentRequirements, getFacilitator} from "../config/thirdweb";
 import {getChainConfig} from "../config/chains";
+import {recordTipAllocations} from "./tipSplitService";
 
 /**
  * Prepares a payment by validating the session, merchant, and total amount,
@@ -163,25 +165,36 @@ export async function settlePayment(
         );
 
         if (result.success && result.txHash) {
-            // create the transaction record
-            const transaction = TransactionRepository.create({
-                sessionId,
-                merchantId: session.merchantId,
-                payerAddress,
-                recipientAddress: merchant.walletAddress,
-                billAmount: session.billAmount,
-                tipAmount: session.tipAmount!,
-                totalAmount: session.totalAmount!,
-                currency: session.currency,
-                txHash: result.txHash,
-                networkId: result.networkId!,
-            });
+            const txHash = result.txHash;
+            const networkId = result.networkId || getChainConfig().networkString;
 
-            // confirm the transaction
-            TransactionRepository.confirm(transaction.id);
+            getDatabase().transaction(() => {
+                // create the transaction record
+                const transaction = TransactionRepository.create({
+                    sessionId,
+                    merchantId: session.merchantId,
+                    payerAddress,
+                    recipientAddress: merchant.walletAddress,
+                    billAmount: session.billAmount,
+                    tipAmount: session.tipAmount ?? 0,
+                    totalAmount: session.totalAmount ?? session.billAmount,
+                    currency: session.currency,
+                    txHash,
+                    networkId,
+                    onChainPolicyId: merchant.onChainPolicyId,
+                });
 
-            // update the session status
-            SessionRepository.updateStatus(sessionId, 'confirmed');
+                // confirm the transaction
+                TransactionRepository.confirm(transaction.id);
+
+                // record the tip allocations for verifiable records
+                if (transaction.tipAmount > 0) {
+                    recordTipAllocations(transaction.id, transaction.merchantId, transaction.tipAmount);
+                }
+
+                // update the session status
+                SessionRepository.updateStatus(sessionId, 'confirmed');
+            })();
 
             return {
                 success: true,
@@ -196,7 +209,6 @@ export async function settlePayment(
             };
         }
     } catch (error) {
-
         SessionRepository.updateStatus(sessionId, "failed");
 
         return {

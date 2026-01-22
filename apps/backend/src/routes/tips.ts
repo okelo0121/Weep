@@ -27,7 +27,10 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/TipCalculation' }
  */
 /**
  * @route POST /api/tips/calculate
@@ -103,7 +106,10 @@ router.post("/calculate", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/AISuggestion' }
  */
 /**
  * @route POST /api/tips/ai-suggestion
@@ -183,7 +189,24 @@ router.post("/ai-suggestion", async (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tipAmount: { type: number }
+ *                     splits:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name: { type: string }
+ *                           percentage: { type: number }
+ *                           amount: { type: number }
+ *                           walletAddress: { type: string }
+ *                           employeeId: { type: string }
+ *                     total: { type: number }
  */
 /**
  * @route POST /api/tips/split
@@ -266,7 +289,16 @@ router.post("/split", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       value: { type: number }
+ *                       label: { type: string }
  */
 /**
  * @route GET /api/tips/percentages

@@ -41,6 +41,24 @@ app.use("/api/", limiter);
 
 app.use(express.json());
 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Check API health status
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: API is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string }
+ *                 timestamp: { type: string, format: 'date-time' }
+ *                 version: { type: string }
+ */
 app.get("/health", (_req, res) => {
     res.json({
         status: "healthy",
@@ -81,6 +99,24 @@ app.get("/", (_req, res) => {
 });
 
 // API info endpoint
+/**
+ * @swagger
+ * /api:
+ *   get:
+ *     summary: Get API information and documentation link
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: API information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 name: { type: string }
+ *                 version: { type: string }
+ *                 documentation: { type: string }
+ */
 app.get("/api", (_req, res) => {
     res.json({
         name: "Weep Protocol API",

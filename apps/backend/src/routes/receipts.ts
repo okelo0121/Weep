@@ -3,8 +3,16 @@
 // ============================================
 
 import {Router} from "express";
-import {MerchantRepository, SessionRepository, TransactionRepository} from "../db/models";
-import {ApiResponse} from "../types";
+import {
+    MerchantRepository,
+    SessionRepository,
+    TipAllocationRepository,
+    TransactionRepository
+} from "../db/models";
+import {
+    ApiResponse,
+    TipAllocation
+} from "../types";
 import {getChainConfig} from "../config/chains";
 import {getExplorerUrl} from "../services";
 
@@ -29,7 +37,44 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     session:
+ *                       type: object
+ *                       properties:
+ *                         id: { type: string }
+ *                         memo: { type: string }
+ *                         billAmount: { type: number }
+ *                         tipAmount: { type: number }
+ *                         totalAmount: { type: number }
+ *                         currency: { type: string }
+ *                         status: { type: string }
+ *                         createdAt: { type: string, format: 'date-time' }
+ *                     merchant:
+ *                       type: object
+ *                       properties:
+ *                         id: { type: string }
+ *                         name: { type: string }
+ *                         slug: { type: string }
+ *                         walletAddress: { type: string }
+ *                     transaction: { $ref: '#/components/schemas/Transaction', nullable: true }
+ *                     network:
+ *                       type: object
+ *                       properties:
+ *                         name: { type: string }
+ *                         chainId: { type: number }
+ *                         currency: { type: string }
+ *                     payer:
+ *                       type: object
+ *                       properties:
+ *                         address: { type: string, nullable: true }
+ *                     allocations:
+ *                       type: array
+ *                       items: { $ref: '#/components/schemas/TipAllocation' }
  *       404:
  *         description: Session or Merchant not found
  */
@@ -73,6 +118,9 @@ router.get("/:sessionId", (request, response) => {
         // Find transaction
         const transaction = TransactionRepository.findBySessionId(sessionId);
 
+        // Get tip allocations
+        const allocations = transaction ? TipAllocationRepository.getByTransactionId(transaction.id) : [];
+
         // Get chain config
         const chainConfig = getChainConfig();
 
@@ -112,6 +160,7 @@ router.get("/:sessionId", (request, response) => {
             payer: {
                 address: session.payerAddress || null,
             },
+            allocations: allocations,
         };
 
         return response.json({
@@ -146,7 +195,14 @@ router.get("/:sessionId", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     shareUrl: { type: string }
+ *                     sessionId: { type: string }
  *       404:
  *         description: Session not found
  */
@@ -244,6 +300,7 @@ router.get("/:sessionId/download", (request, response) => {
 
         const merchant = MerchantRepository.findById(session.merchantId);
         const transaction = TransactionRepository.findBySessionId(sessionId);
+        const allocations = transaction ? TipAllocationRepository.getByTransactionId(transaction.id) : [];
         const chainConfig = getChainConfig();
 
         const receiptData = {
@@ -257,6 +314,7 @@ router.get("/:sessionId/download", (request, response) => {
             network: chainConfig.networkString,
             transactionHash: transaction?.txHash || null,
             status: session.status,
+            allocations: allocations,
         };
 
         response.setHeader("Content-Type", "application/json");
@@ -314,4 +372,5 @@ interface ReceiptData {
     payer: {
         address: string | null;
     };
+    allocations: TipAllocation[];
 }

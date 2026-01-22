@@ -1,4 +1,5 @@
-import {createThirdwebClient} from "thirdweb";
+import {createThirdwebClient, defineChain} from "thirdweb";
+import {privateKeyToAccount} from "thirdweb/wallets";
 import {type ChainConfig, getChainConfig, USDC_DECIMALS} from "./chains";
 
 
@@ -132,7 +133,7 @@ export class ThirdWebFacilitator {
 
             // let us simulate a successful settlement for hackathon demo
             const mockTxHash = `0x${Array.from({length: 64}, () => Math.floor(Math.random() * 16)
-                .toString(16)).join("")} )}`
+                .toString(16)).join("")}`
 
             return {
                 success: true,
@@ -255,5 +256,32 @@ export function getThirdWebClient(): ReturnType<typeof createThirdwebClient> {
     }
 
     return _client;
+}
+
+/**
+ * Retrieves the server account for signing transactions.
+ * Requires PRIVATE_KEY to be set in environment variables.
+ *
+ * @return {ReturnType<typeof privateKeyToAccount>} The server account.
+ */
+export function getServerAccount() {
+    const privateKey = process.env.PRIVATE_KEY;
+    if (!privateKey) {
+        throw new Error("PRIVATE_KEY is required for contract interaction");
+    }
+    return privateKeyToAccount({
+        privateKey,
+        client: getThirdWebClient(),
+    });
+}
+
+/**
+ * Retrieves the Thirdweb chain object for the current configuration.
+ *
+ * @return {ReturnType<typeof defineChain>} The chain object.
+ */
+export function getChain() {
+    const config = getChainConfig();
+    return defineChain(config.chainId);
 }
 

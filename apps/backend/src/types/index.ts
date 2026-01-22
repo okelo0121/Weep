@@ -5,6 +5,7 @@ export interface Merchant {
     slug: string;
     walletAddress: string;
     avatar?: string;
+    onChainPolicyId?: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -24,9 +25,36 @@ export interface TipSplitConfig {
 }
 
 export interface TipSplit {
+    id?: string;
+    merchantId?: string;
     name: string;
     percentage: number;
     walletAddress?: string;
+    employeeId?: string;
+}
+
+export interface Employee {
+    id: string;
+    merchantId: string;
+    name: string;
+    walletAddress: string;
+    role: string; // e.g., 'FOH', 'BOH', 'Bar'
+    status: 'active' | 'inactive';
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface TipAllocation {
+    id: string;
+    transactionId: string;
+    merchantId: string;
+    employeeId?: string;
+    recipientName: string; // Category or employee name
+    recipientWallet: string;
+    amount: number;
+    percentage: number;
+    status: 'pending' | 'distributed';
+    createdAt: string;
 }
 
 export interface TipSession {
@@ -190,6 +218,7 @@ export interface Transaction {
     currency: string;
     txHash: string;
     networkId: string;
+    onChainPolicyId?: number;
     status: TransactionStatus;
     createdAt: string;
     confirmedAt?: string;

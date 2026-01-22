@@ -36,7 +36,24 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     session: { $ref: '#/components/schemas/TipSession' }
+ *                     merchant: { $ref: '#/components/schemas/Merchant' }
+ *                     paymentRequirements:
+ *                       type: object
+ *                       properties:
+ *                         x402Version: { type: number }
+ *                         scheme: { type: string }
+ *                         network: { type: string }
+ *                         maxAmountRequired: { type: string }
+ *                         resource: { type: string }
+ *                         payTo: { type: string }
+ *                         asset: { type: string }
  */
 /**
  * @route POST /api/payments/prepare
@@ -108,7 +125,14 @@ router.post("/prepare", async (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     isValid: { type: boolean }
+ *                     invalidReason: { type: string, nullable: true }
  */
 /**
  * @route POST /api/payments/verify
@@ -186,7 +210,16 @@ router.post("/verify", async (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     success: { type: boolean }
+ *                     txHash: { type: string, nullable: true }
+ *                     networkId: { type: string, nullable: true }
+ *                     error: { type: string, nullable: true }
  *       400:
  *         description: Settlement failed
  */
@@ -266,7 +299,15 @@ router.post("/settle", async (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     session: { $ref: '#/components/schemas/TipSession' }
+ *                     transaction: { $ref: '#/components/schemas/Transaction', nullable: true }
+ *                     explorerUrl: { type: string, nullable: true }
  *       404:
  *         description: Session not found
  */
@@ -338,7 +379,13 @@ router.get("/status/:sessionId", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     paymentUrl: { type: string }
  */
 /**
  * @route POST /api/payments/url
@@ -399,7 +446,30 @@ router.post("/url", (request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     schemes:
+ *                       type: array
+ *                       items: { type: string }
+ *                     networks:
+ *                       type: array
+ *                       items: { type: string }
+ *                     tokens:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           address: { type: string }
+ *                           symbol: { type: string }
+ *                           decimals: { type: number }
+ *                           chainId: { type: number }
+ *                     chainId: { type: number }
+ *                     network: { type: string }
+ *                     explorer: { type: string }
  */
 /**
  * @route GET /api/payments/supported
@@ -449,7 +519,18 @@ router.get("/supported", async (_request, response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     chainId: { type: number }
+ *                     network: { type: string }
+ *                     usdcAddress: { type: string }
+ *                     explorer: { type: string }
+ *                     currency: { type: string }
+ *                     decimals: { type: number }
  */
 /**
  * @route GET /api/payments/config

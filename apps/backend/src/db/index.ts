@@ -53,9 +53,11 @@ function seedDatabase(): Database.Database {
  */
 function initializeTables(db: Database.Database): void {
     createMerchantTable(db);
+    createEmployeeTable(db);
     createTipSplitTable(db);
     createSessionTable(db);
     createTransactionTable(db);
+    createTipAllocationTable(db);
     createDisputeTable(db);
 }
 
@@ -71,6 +73,9 @@ function createIndexes(db: Database.Database): void {
         CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions (status);
         CREATE INDEX IF NOT EXISTS idx_transactions_merchant ON transactions (merchant_id);
         CREATE INDEX IF NOT EXISTS idx_transactions_session ON transactions (session_id);
+        CREATE INDEX IF NOT EXISTS idx_employees_merchant ON employees (merchant_id);
+        CREATE INDEX IF NOT EXISTS idx_tip_allocations_transaction ON tip_allocations (transaction_id);
+        CREATE INDEX IF NOT EXISTS idx_tip_allocations_merchant ON tip_allocations (merchant_id);
         CREATE INDEX IF NOT EXISTS idx_disputes_merchant ON disputes (merchant_id);
         CREATE INDEX IF NOT EXISTS idx_disputes_session ON disputes (session_id);
     `);
@@ -220,6 +225,39 @@ function seedData(db: Database.Database): void {
         });
 
         console.log("✅ Demo data seeded successfully");
+
+        // Seed some demo employees
+        const demoEmployees = [
+            {name: "Alice Johnson", role: "Front Of House", wallet: "0x1111111111111111111111111111111111111111"},
+            {name: "Bob Smith", role: "Back Of House", wallet: "0x2222222222222222222222222222222222222222"},
+            {name: "Charlie Davis", role: "Bar", wallet: "0x3333333333333333333333333333333333333333"},
+        ];
+
+        const insertEmployee = db.prepare(`
+            INSERT INTO employees (id, merchant_id, name, wallet_address, role, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        demoEmployees.forEach((emp, index) => {
+            insertEmployee.run(
+                `employee_demo_${index}`,
+                "merchant_demo_cafe",
+                emp.name,
+                emp.wallet,
+                emp.role,
+                "active",
+                now,
+                now
+            );
+        });
+
+        // Update tip splits to use these employees
+        db.prepare("UPDATE tip_splits SET employee_id = ?, wallet_address = ? WHERE merchant_id = ? AND name = ?")
+            .run("employee_demo_0", demoEmployees[0].wallet, "merchant_demo_cafe", "Front Of House");
+        db.prepare("UPDATE tip_splits SET employee_id = ?, wallet_address = ? WHERE merchant_id = ? AND name = ?")
+            .run("employee_demo_1", demoEmployees[1].wallet, "merchant_demo_cafe", "Back Of House");
+        db.prepare("UPDATE tip_splits SET employee_id = ?, wallet_address = ? WHERE merchant_id = ? AND name = ?")
+            .run("employee_demo_2", demoEmployees[2].wallet, "merchant_demo_cafe", "Bar");
     }
 }
 
@@ -233,13 +271,14 @@ function createMerchantTable(db: Database.Database): void {
     db.exec(`
         CREATE TABLE IF NOT EXISTS merchants
         (
-            id             TEXT PRIMARY KEY,
-            name           TEXT        NOT NULL,
-            slug           TEXT UNIQUE NOT NULL,
-            wallet_address TEXT        NOT NULL,
-            avatar         TEXT,
-            created_at     TEXT        NOT NULL,
-            updated_at     TEXT        NOT NULL
+            id                 TEXT PRIMARY KEY,
+            name               TEXT        NOT NULL,
+            slug               TEXT UNIQUE NOT NULL,
+            wallet_address     TEXT        NOT NULL,
+            avatar             TEXT,
+            on_chain_policy_id INTEGER,
+            created_at         TEXT        NOT NULL,
+            updated_at         TEXT        NOT NULL
         )
     `);
 }
@@ -259,8 +298,10 @@ function createTipSplitTable(db: Database.Database): void {
             name           TEXT NOT NULL,
             percentage     REAL NOT NULL,
             wallet_address TEXT,
+            employee_id    TEXT,
             created_at     TEXT NOT NULL,
-            FOREIGN KEY (merchant_id) REFERENCES merchants (id)
+            FOREIGN KEY (merchant_id) REFERENCES merchants (id),
+            FOREIGN KEY (employee_id) REFERENCES employees (id)
         )
     `);
 }
@@ -317,6 +358,7 @@ function createTransactionTable(db: Database.Database): void {
             currency          TEXT NOT NULL DEFAULT 'USDC',
             tx_hash           TEXT NOT NULL,
             network_id        TEXT NOT NULL,
+            on_chain_policy_id INTEGER,
             status            TEXT NOT NULL DEFAULT 'pending',
             created_at        TEXT NOT NULL,
             confirmed_at      TEXT,
@@ -362,6 +404,57 @@ function createDisputeTable(db: Database.Database): void {
             resolution   TEXT,
             FOREIGN KEY (session_id) REFERENCES sessions (id),
             FOREIGN KEY (merchant_id) REFERENCES merchants (id)
+        )
+    `);
+}
+
+/**
+ * Creates the `employees` table in the database if it does not already exist.
+ *
+ * @param {Database.Database} db - The database instance where the table will be created.
+ * @return {void}
+ */
+function createEmployeeTable(db: Database.Database): void {
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS employees
+        (
+            id             TEXT PRIMARY KEY,
+            merchant_id    TEXT NOT NULL,
+            name           TEXT NOT NULL,
+            wallet_address TEXT NOT NULL,
+            role           TEXT NOT NULL,
+            status         TEXT NOT NULL DEFAULT 'active',
+            created_at     TEXT NOT NULL,
+            updated_at     TEXT NOT NULL,
+            FOREIGN KEY (merchant_id) REFERENCES merchants (id)
+        )
+    `);
+}
+
+/**
+ * Creates the `tip_allocations` table in the database if it does not already exist.
+ * This table stores verifiable records of how tips were allocated to employees/categories.
+ *
+ * @param {Database.Database} db - The database instance where the table will be created.
+ * @return {void}
+ */
+function createTipAllocationTable(db: Database.Database): void {
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS tip_allocations
+        (
+            id               TEXT PRIMARY KEY,
+            transaction_id   TEXT NOT NULL,
+            merchant_id      TEXT NOT NULL,
+            employee_id      TEXT,
+            recipient_name   TEXT NOT NULL,
+            recipient_wallet TEXT NOT NULL,
+            amount           REAL NOT NULL,
+            percentage       REAL NOT NULL,
+            status           TEXT NOT NULL DEFAULT 'pending',
+            created_at       TEXT NOT NULL,
+            FOREIGN KEY (transaction_id) REFERENCES transactions (id),
+            FOREIGN KEY (merchant_id) REFERENCES merchants (id),
+            FOREIGN KEY (employee_id) REFERENCES employees (id)
         )
     `);
 }
