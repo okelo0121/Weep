@@ -74,7 +74,7 @@ export default function Dashboard() {
             className="md:hidden text-gray-400 hover:text-white transform hover:scale-110 transition-transform"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
-            {isMobileMenuOpen ? <X size={32} /> : <Menu size={32} />}
+            {isMobileMenuOpen ? <X size={48} /> : <Menu size={48} />}
           </button>
 
           {/* Logo - Large but fitted */}
