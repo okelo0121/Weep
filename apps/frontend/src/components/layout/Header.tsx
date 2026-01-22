@@ -19,7 +19,7 @@ export function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-card">
-      <div className="container mx-auto px-6 py-6 max-w-[1600px]">
+      <div className="container mx-auto px-6 py-3 max-w-[1600px]">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 transition-transform hover:scale-105">
@@ -62,7 +62,7 @@ export function Header() {
             className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            {mobileMenuOpen ? <X className="h-12 w-12" /> : <Menu className="h-12 w-12" />}
+            {mobileMenuOpen ? <X className="h-14 w-14" /> : <Menu className="h-14 w-14" />}
           </Button>
         </div>
 

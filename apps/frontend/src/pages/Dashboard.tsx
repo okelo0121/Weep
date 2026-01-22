@@ -67,22 +67,22 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-black font-sans text-foreground selection:bg-primary/20">
       {/* Top Navigation Bar */}
-      <header className="fixed top-0 left-0 right-0 h-24 bg-black border-b border-white/10 flex items-center justify-between px-6 md:px-12 z-50 transition-all duration-300">
-        <div className="flex items-center gap-6 md:gap-16">
-          {/* Mobile Menu Button - Increased size */}
+      <header className="fixed top-0 left-0 right-0 h-20 bg-black border-b border-white/10 flex items-center justify-between px-4 md:px-8 z-50 transition-all duration-300">
+        <div className="flex items-center gap-4 md:gap-12">
+          {/* Mobile Menu Button - Massive size */}
           <button
             className="md:hidden text-gray-400 hover:text-white transform hover:scale-110 transition-transform"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
-            {isMobileMenuOpen ? <X size={48} /> : <Menu size={48} />}
+            {isMobileMenuOpen ? <X size={56} /> : <Menu size={56} />}
           </button>
 
-          {/* Logo - Large but fitted */}
+          {/* Logo - Large relative to header */}
           <Link to="/" className="flex items-center gap-3 group">
-            <img src={weepLogo} alt="Weep" className="h-14 md:h-20 w-auto transition-transform group-hover:scale-105" />
+            <img src={weepLogo} alt="Weep" className="h-16 md:h-20 w-auto transition-transform group-hover:scale-105" />
           </Link>
 
-          {/* Nav Links - Increased size & spacing */}
+          {/* Nav Links */}
           <nav className="hidden md:flex items-center gap-12">
             <NavLink active href="/dashboard">Dashboard</NavLink>
             <NavLink href="/widget">Widget</NavLink>
@@ -115,7 +115,7 @@ export default function Dashboard() {
       )}
 
       {/* Main Content Area */}
-      <main className="pt-32 px-6 md:px-12 max-w-[1600px] mx-auto pb-16">
+      <main className="pt-28 px-6 md:px-12 max-w-[1600px] mx-auto pb-16">
         {/* Page Header & Toggle */}
         <div className="bg-[#111111] rounded-2xl p-4 md:p-6 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/5">
           <div>
