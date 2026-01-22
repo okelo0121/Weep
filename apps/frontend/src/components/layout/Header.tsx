@@ -23,7 +23,7 @@ export function Header() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 transition-transform hover:scale-105">
-            <img src={weepLogo} alt="Weep" className="h-28 w-auto object-contain" />
+            <img src={weepLogo} alt="Weep" className="h-20 w-auto object-contain" />
           </Link>
 
           {/* Desktop Navigation */}
